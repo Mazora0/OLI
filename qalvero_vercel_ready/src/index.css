@@ -1,5 +1,0 @@
-@tailwind base;@tailwind components;@tailwind utilities;
-:root{color-scheme:dark}body{margin:0;background:#080A12;color:#f8fafc} .light body{background:#f7f9ff;color:#0f172a}
-.glass{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(18px)}
-.light .glass{background:rgba(255,255,255,.82);border-color:rgba(15,23,42,.10)}
-.scrollbar::-webkit-scrollbar{width:8px}.scrollbar::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35);border-radius:999px}

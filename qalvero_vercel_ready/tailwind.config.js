@@ -1,1 +1,0 @@
-export default { darkMode:'class', content:['./index.html','./src/**/*.{ts,tsx}'], theme:{extend:{fontFamily:{sans:['Inter','ui-sans-serif','system-ui']}, colors:{ink:'#080A12',brand:{cyan:'#22d3ee',blue:'#3b82f6',violet:'#8b5cf6'}}, boxShadow:{glow:'0 0 60px rgba(34,211,238,.16)'}}}, plugins:[] }
