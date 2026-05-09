@@ -23,11 +23,12 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "ws": "^8.18.0"
   },
   "devDependencies": {},
   "packageManager": "npm@10.9.2",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   }
 }
