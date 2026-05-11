@@ -1,0 +1,43 @@
+import { createClient } from '@supabase/supabase-js';
+
+function admin() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+const prices: Record<string, Record<string, { currency: string; standard: number; premium: number; max: number }>> = {
+  EG: { monthly: { currency: 'EGP', standard: 29, premium: 49, max: 99 } },
+  US: { monthly: { currency: 'USD', standard: 3, premium: 4.99, max: 9.99 } },
+  SA: { monthly: { currency: 'SAR', standard: 11, premium: 19, max: 39 } },
+  AE: { monthly: { currency: 'AED', standard: 11, premium: 19, max: 39 } },
+  GB: { monthly: { currency: 'GBP', standard: 2.5, premium: 4.49, max: 9 } },
+  EU: { monthly: { currency: 'EUR', standard: 2.99, premium: 4.99, max: 9 } },
+  TR: { monthly: { currency: 'TRY', standard: 99, premium: 169, max: 299 } },
+  JP: { monthly: { currency: 'JPY', standard: 450, premium: 750, max: 1400 } },
+  OTHER: { monthly: { currency: 'USD', standard: 3, premium: 4.99, max: 9.99 } }
+};
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const { email, plan = 'Standard', note = '' } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const sb = admin();
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (!sb || !token) return res.status(401).json({ error: 'Login required before requesting an invoice' });
+  const { data, error } = await sb.auth.getUser(token);
+  if (error || !data.user?.id) return res.status(401).json({ error: 'Invalid session' });
+  const profileId = data.user.id;
+  let country = 'EG';
+  if (sb && profileId) {
+    const { data: profile } = await sb.from('qv_profiles').select('country').eq('id', profileId).maybeSingle();
+    country = String(profile?.country || data.user?.user_metadata?.country || 'EG').toUpperCase();
+  }
+  const p = prices[country]?.monthly || prices.OTHER.monthly;
+  const amount = plan === 'Max' ? p.max : plan === 'Premium' ? p.premium : p.standard;
+  if (sb) {
+    await sb.from('qv_invoice_requests').insert({ user_id: profileId, email, plan, country, currency: p.currency, amount, note: String(note).slice(0, 500), status: 'pending' });
+  }
+  return res.status(200).json({ ok: true, message: 'Invoice request saved. Send the PayPal invoice from your PayPal Business dashboard.', invoice: { email, plan, country, currency: p.currency, amount, business_email: process.env.PAYPAL_BUSINESS_EMAIL || 'support@qalvero.com' } });
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Qalvero AI",
+  "short_name": "Qalvero AI",
+  "description": "Qalvero AI chat, QLO Agent, Office exports, and local project preview.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070914",
+  "theme_color": "#070914",
+  "dir": "auto",
+  "lang": "en",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
