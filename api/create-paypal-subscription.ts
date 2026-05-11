@@ -28,16 +28,19 @@ export default async function handler(req: any, res: any) {
       status: 'checkout_created',
       plan,
       country,
-      paypal_subscription_id: created.subscriptionId,
-      metadata: { plan_id: planId, source: 'paypal_subscription_checkout' }
+      external_subscription_id: created.subscriptionId,
+      external_plan_id: planId,
+      metadata: { source: 'subscription_checkout' }
     });
 
-    await sb.from('qv_paypal_events').insert({
+    await sb.from('qv_provider_events').insert({
       user_id: userData.user.id,
+      provider: 'paypal',
       event_type: 'subscription.checkout_created',
-      paypal_subscription_id: created.subscriptionId,
+      provider_subscription_id: created.subscriptionId,
+      provider_plan_id: planId,
       plan,
-      raw: { plan_id: planId, country }
+      raw: { country }
     });
 
     return res.status(200).json({ url: created.approvalUrl, subscription_id: created.subscriptionId });
