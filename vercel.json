@@ -5,11 +5,6 @@
       "destination": "/index.html"
     }
   ],
-  "functions": {
-    "api/*.ts": {
-      "maxDuration": 45
-    }
-  },
   "framework": "vite",
   "installCommand": "npm ci --include=dev --no-audit --no-fund --legacy-peer-deps",
   "buildCommand": "npm run build",
