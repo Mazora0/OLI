@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "node -e \"console.log('No unit tests configured in this repository yet')\"",
-    "ci": "npm run typecheck && npm run test && npm run build"
+    "ci": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
@@ -30,9 +30,8 @@
     "typescript": "^5.7.2",
     "vite": "^5.4.11"
   },
-  "packageManager": "npm@10.9.2",
+  "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=22 <25",
-    "npm": ">=10.9.0"
+    "node": ">=22 <25"
   }
 }
