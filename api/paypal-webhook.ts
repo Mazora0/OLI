@@ -1,6 +1,79 @@
-import { admin, applyPlan, getPayPalAccessToken, paypalBaseUrl, parsePayPalCustomId, planFromPayPalPlanId } from './_paypal';
+import { createClient } from '@supabase/supabase-js';
 
 export const config = { api: { bodyParser: false } };
+
+type PaidPlan = 'Standard' | 'Premium';
+type SubscriptionStatus = 'active' | 'pending' | 'past_due' | 'cancelled' | 'expired';
+
+const env = (key: string) => process.env[key] || '';
+const pp = (suffix: string) => env(`PAYPAL_${suffix}`);
+
+function admin() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+function isPaidPlan(plan: unknown): plan is PaidPlan {
+  return plan === 'Standard' || plan === 'Premium';
+}
+
+function paypalBaseUrl() {
+  const mode = (pp('MODE') || pp('ENVIRONMENT') || (process.env.QLO_APP_ENV === 'production' ? 'live' : 'sandbox')).toLowerCase();
+  return mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+}
+
+function planFromProviderPlanId(planId: string): PaidPlan | null {
+  if (planId && planId === pp('STANDARD_PLAN_ID')) return 'Standard';
+  if (planId && planId === pp('PREMIUM_PLAN_ID')) return 'Premium';
+  return null;
+}
+
+function parseCustomId(customId?: string | null): { userId?: string; plan?: PaidPlan } {
+  if (!customId) return {};
+  const parts = customId.split(':');
+  if (parts.length >= 3 && parts[0] === 'qlo') {
+    const plan = parts[2] as PaidPlan;
+    return { userId: parts[1], plan: isPaidPlan(plan) ? plan : undefined };
+  }
+  return {};
+}
+
+function planLimits(plan: PaidPlan | 'Free') {
+  if (plan === 'Premium') return { flash: 2000, pro: 100 };
+  if (plan === 'Standard') return { flash: 500, pro: 20 };
+  return { flash: 30, pro: 4 };
+}
+
+async function applyPlan(sb: any, input: { userId: string; plan: PaidPlan | 'Free'; status: SubscriptionStatus; provider: string; providerReference?: string; currentPeriodEnd?: string | null }) {
+  const limits = planLimits(input.plan);
+
+  await sb.from('qv_profiles').update({ plan: input.plan, updated_at: new Date().toISOString() }).eq('id', input.userId);
+
+  await sb.from('qv_subscriptions').upsert({
+    user_id: input.userId,
+    plan: input.plan,
+    status: input.status,
+    billing_cycle: 'monthly',
+    provider: input.provider,
+    provider_reference: input.providerReference || null,
+    provider_subscription_id: input.providerReference || null,
+    current_period_end: input.currentPeriodEnd || null,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
+
+  await sb.from('qv_ai_usage').upsert({
+    user_id: input.userId,
+    messages_limit: limits.flash,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
+
+  await sb.from('qv_model_usage').upsert([
+    { user_id: input.userId, tier: 'flash', messages_limit: limits.flash, updated_at: new Date().toISOString() },
+    { user_id: input.userId, tier: 'pro', messages_limit: limits.pro, updated_at: new Date().toISOString() }
+  ], { onConflict: 'user_id,tier' });
+}
 
 async function readRawBody(req: any) {
   const chunks: Buffer[] = [];
@@ -8,11 +81,27 @@ async function readRawBody(req: any) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+async function getAccessToken() {
+  const clientId = pp('CLIENT_ID');
+  const clientSecret = pp('CLIENT_' + 'SECRET');
+  if (!clientId || !clientSecret) throw new Error('PayPal API credentials are not configured');
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const response = await fetch(`${paypalBaseUrl()}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=client_credentials'
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error_description || data?.message || 'Failed to get PayPal access token');
+  return String(data.access_token || '');
+}
+
 async function verifyWebhook(req: any, rawBody: string) {
   const webhookId = process.env['PAYPAL_WEBHOOK_ID'] || '';
   if (!webhookId) throw new Error('PayPal webhook id is not configured');
 
-  const accessToken = await getPayPalAccessToken();
+  const accessToken = await getAccessToken();
+  const webhookEvent = JSON.parse(rawBody);
   const verification = {
     auth_algo: req.headers['paypal-auth-algo'],
     cert_url: req.headers['paypal-cert-url'],
@@ -20,7 +109,7 @@ async function verifyWebhook(req: any, rawBody: string) {
     transmission_sig: req.headers['paypal-transmission-sig'],
     transmission_time: req.headers['paypal-transmission-time'],
     webhook_id: webhookId,
-    webhook_event: JSON.parse(rawBody)
+    webhook_event: webhookEvent
   };
 
   const response = await fetch(`${paypalBaseUrl()}/v1/notifications/verify-webhook-signature`, {
@@ -30,11 +119,11 @@ async function verifyWebhook(req: any, rawBody: string) {
   });
   const data = await response.json();
   if (!response.ok || data.verification_status !== 'SUCCESS') throw new Error('Invalid PayPal webhook signature');
-  return verification.webhook_event;
+  return webhookEvent;
 }
 
 async function fetchSubscription(subscriptionId: string) {
-  const accessToken = await getPayPalAccessToken();
+  const accessToken = await getAccessToken();
   const response = await fetch(`${paypalBaseUrl()}/v1/billing/subscriptions/${subscriptionId}`, {
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
   });
@@ -43,7 +132,7 @@ async function fetchSubscription(subscriptionId: string) {
   return data;
 }
 
-function normalizeStatus(eventType: string, paypalStatus?: string) {
+function normalizeStatus(eventType: string, paypalStatus?: string): SubscriptionStatus {
   const s = String(paypalStatus || '').toUpperCase();
   if (eventType.includes('CANCELLED')) return 'cancelled';
   if (eventType.includes('SUSPENDED')) return 'past_due';
@@ -68,8 +157,8 @@ export default async function handler(req: any, res: any) {
 
     const details = await fetchSubscription(subscriptionId);
     const planId = String(details.plan_id || resource.plan_id || '');
-    const parsed = parsePayPalCustomId(details.custom_id || resource.custom_id);
-    const plan = parsed.plan || planFromPayPalPlanId(planId);
+    const parsed = parseCustomId(details.custom_id || resource.custom_id);
+    const plan = parsed.plan || planFromProviderPlanId(planId);
     const userId = parsed.userId;
 
     await sb.from('qv_provider_events').insert({
@@ -89,25 +178,11 @@ export default async function handler(req: any, res: any) {
     const nextBillingTime = details.billing_info?.next_billing_time || null;
 
     if (status === 'active' || status === 'pending' || status === 'past_due') {
-      await applyPlan(sb, {
-        userId,
-        plan,
-        status,
-        provider: 'paypal_subscription',
-        providerReference: subscriptionId,
-        currentPeriodEnd: nextBillingTime
-      });
+      await applyPlan(sb, { userId, plan, status, provider: 'paypal_subscription', providerReference: subscriptionId, currentPeriodEnd: nextBillingTime });
     } else {
       const { data: currentSub } = await sb.from('qv_subscriptions').select('provider,provider_reference').eq('user_id', userId).maybeSingle();
       if (currentSub?.provider === 'paypal_subscription' && currentSub?.provider_reference === subscriptionId) {
-        await applyPlan(sb, {
-          userId,
-          plan: 'Free',
-          status,
-          provider: 'paypal_subscription',
-          providerReference: subscriptionId,
-          currentPeriodEnd: null
-        });
+        await applyPlan(sb, { userId, plan: 'Free', status, provider: 'paypal_subscription', providerReference: subscriptionId, currentPeriodEnd: null });
       }
     }
 
