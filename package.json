@@ -1,12 +1,15 @@
 {
   "name": "qalvero-qlo-ai-ecosystem",
   "private": true,
-  "version": "2.1.1",
+  "version": "2.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "ci": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
@@ -26,9 +29,12 @@
     "vite": "^5.4.11",
     "ws": "^8.18.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  },
   "packageManager": "npm@10.9.2",
   "engines": {
-    "node": "22.x"
+    "node": ">=22 <25",
+    "npm": ">=10.9.0"
   }
 }
