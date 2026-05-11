@@ -6,38 +6,44 @@ import { getAccessToken } from '../lib/supabase';
 
 const planNames = ['Free', 'Standard', 'Premium'] as const;
 
+type PaidPlan = 'Standard' | 'Premium';
+
 const text = {
   ar: {
     badge: 'تسعير حسب الدولة',
     title: 'خطط تبدأ مجاني وتكبر معاك.',
-    subtitle: 'مصر لها سعر محلي أقل. Stripe يفعّل الخطة تلقائيًا، و PayPal invoice موجود كحل يدوي احتياطي.',
+    subtitle: 'مصر لها سعر محلي أقل. Stripe يفعّل الخطة تلقائيًا، و PayPal متاح للدفع أو الفاتورة.',
     daily: 'رسالة AI يوميًا',
     current: 'الخطة الحالية',
     stripe: 'اشترك بـ Stripe',
+    paypalSubscribe: 'ادفع بـ PayPal',
     paypal: 'طلب فاتورة PayPal',
     email: 'إيميل العميل',
     loginFirst: 'سجّل دخول الأول، بعدها اختار خطة مدفوعة.',
     stripeMissing: 'Stripe Checkout مش متفعل لسه.',
+    paypalMissing: 'PayPal مش متفعل لسه.',
     saved: 'تم حفظ طلب الفاتورة',
     payments: 'الدفع',
-    paymentsText: 'Stripe Checkout يفعّل Standard/Premium تلقائيًا عند ضبط الـ webhook. PayPal invoice يفضل يدويًا كخطة احتياطية.',
-    note: 'ملاحظة إنتاج: لازم تضيف Stripe keys و webhook secret في Vercel عشان التفعيل التلقائي يشتغل.'
+    paymentsText: 'الدفع التلقائي يفعّل Standard/Premium عبر Webhook. الفاتورة اليدوية تفضل كحل احتياطي.',
+    note: 'ملاحظة إنتاج: راجع إعدادات الدفع في لوحة التحكم قبل فتح الاشتراكات للمستخدمين.'
   },
   en: {
     badge: 'Regional SaaS Pricing',
     title: 'Plans that scale from free to serious.',
-    subtitle: 'Egypt gets lower local pricing. Stripe Checkout activates plans automatically, and PayPal invoice is available as a manual backup.',
+    subtitle: 'Egypt gets lower local pricing. Stripe activates plans automatically, and PayPal is available for payment or invoice.',
     daily: 'AI messages / day',
     current: 'Current starter plan',
     stripe: 'Subscribe with Stripe',
+    paypalSubscribe: 'Pay with PayPal',
     paypal: 'Request PayPal invoice',
     email: 'Customer email',
     loginFirst: 'Login first, then choose a paid plan.',
     stripeMissing: 'Stripe checkout is not configured yet.',
+    paypalMissing: 'PayPal is not configured yet.',
     saved: 'Invoice request saved',
     payments: 'Payments',
-    paymentsText: 'Stripe Checkout activates Standard/Premium automatically through the webhook. PayPal invoice stays manual as a backup.',
-    note: 'Production note: add Stripe keys and webhook secret in Vercel for automatic plan activation.'
+    paymentsText: 'Automatic payments activate Standard/Premium through webhooks. Manual invoice remains as a backup.',
+    note: 'Production note: review payment dashboard settings before opening subscriptions to users.'
   }
 } as const;
 
@@ -47,7 +53,7 @@ export default function Pricing() {
   const [email, setEmail] = useState(profile?.email || '');
   const [msg, setMsg] = useState('');
 
-  async function request(plan: 'Standard' | 'Premium') {
+  async function request(plan: PaidPlan) {
     setMsg('');
     const token = await getAccessToken();
     if (!token) { setMsg(c.loginFirst); return; }
@@ -56,7 +62,7 @@ export default function Pricing() {
     setMsg(data.error || `${c.saved}: ${data.invoice?.currency || ''} ${data.invoice?.amount || ''} · ${plan}.`);
   }
 
-  async function checkout(plan: 'Standard' | 'Premium') {
+  async function checkout(plan: PaidPlan) {
     setMsg('');
     const token = await getAccessToken();
     if (!token) { setMsg(c.loginFirst); return; }
@@ -64,6 +70,16 @@ export default function Pricing() {
     const data = await r.json();
     if (data.url) window.location.href = data.url;
     else setMsg(data.error || c.stripeMissing);
+  }
+
+  async function paypalCheckout(plan: PaidPlan) {
+    setMsg('');
+    const token = await getAccessToken();
+    if (!token) { setMsg(c.loginFirst); return; }
+    const r = await fetch('/api/create-paypal-subscription', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ plan }) });
+    const data = await r.json();
+    if (data.url) window.location.href = data.url;
+    else setMsg(data.error || c.paypalMissing);
   }
 
   return (
@@ -83,7 +99,7 @@ export default function Pricing() {
             <ul className="mt-6 space-y-3">{[...limits[p].models, ...limits[p].tools].map((x) => <li key={x} className="flex gap-2 text-sm"><Check className="shrink-0 text-[var(--accent-1)]" size={18} />{x}</li>)}</ul>
             {p === 'Free'
               ? <button className="btn btn-soft mt-7 w-full">{c.current}</button>
-              : <div className="mt-7 grid gap-2"><button className="btn btn-primary w-full" onClick={() => checkout(p)}><CreditCard size={16} /> {c.stripe}</button><button className="btn btn-soft w-full" onClick={() => request(p)}>{c.paypal}</button></div>}
+              : <div className="mt-7 grid gap-2"><button className="btn btn-primary w-full" onClick={() => checkout(p)}><CreditCard size={16} /> {c.stripe}</button><button className="btn btn-primary w-full" onClick={() => paypalCheckout(p)}><CreditCard size={16} /> {c.paypalSubscribe}</button><button className="btn btn-soft w-full" onClick={() => request(p)}>{c.paypal}</button></div>}
           </div>
         ))}
       </div>
