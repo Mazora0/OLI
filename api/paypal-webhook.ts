@@ -67,15 +67,18 @@ export default async function handler(req: any, res: any) {
     if (!subscriptionId) return res.status(200).json({ ok: true, ignored: 'missing_subscription_id' });
 
     const details = await fetchSubscription(subscriptionId);
+    const planId = String(details.plan_id || resource.plan_id || '');
     const parsed = parsePayPalCustomId(details.custom_id || resource.custom_id);
-    const plan = parsed.plan || planFromPayPalPlanId(String(details.plan_id || resource.plan_id || ''));
+    const plan = parsed.plan || planFromPayPalPlanId(planId);
     const userId = parsed.userId;
 
-    await sb.from('qv_paypal_events').insert({
+    await sb.from('qv_provider_events').insert({
       event_id: event.id,
       event_type: eventType,
+      provider: 'paypal',
       user_id: userId || null,
-      paypal_subscription_id: subscriptionId,
+      provider_subscription_id: subscriptionId,
+      provider_plan_id: planId || null,
       plan: plan || null,
       raw: event
     });
@@ -113,10 +116,11 @@ export default async function handler(req: any, res: any) {
       provider: 'paypal',
       status,
       plan,
-      paypal_subscription_id: subscriptionId,
-      metadata: { event_type: eventType, paypal_status: details.status, plan_id: details.plan_id },
+      external_subscription_id: subscriptionId,
+      external_plan_id: planId || null,
+      metadata: { event_type: eventType, paypal_status: details.status },
       updated_at: new Date().toISOString()
-    }, { onConflict: 'paypal_subscription_id' });
+    }, { onConflict: 'external_subscription_id' });
 
     return res.status(200).json({ ok: true });
   } catch (err: any) {
