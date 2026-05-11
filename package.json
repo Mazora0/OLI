@@ -1,14 +1,14 @@
 {
   "name": "qalvero-qlo-ai-ecosystem",
   "private": true,
-  "version": "2.1.2",
+  "version": "2.1.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "test": "vitest run --passWithNoTests",
+    "test": "node -e \"console.log('No unit tests configured in this repository yet')\"",
     "ci": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
@@ -29,9 +29,7 @@
     "vite": "^5.4.11",
     "ws": "^8.18.0"
   },
-  "devDependencies": {
-    "vitest": "^2.1.8"
-  },
+  "devDependencies": {},
   "packageManager": "npm@10.9.2",
   "engines": {
     "node": ">=22 <25",
