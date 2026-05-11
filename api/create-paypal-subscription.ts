@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 type PaidPlan = 'Standard' | 'Premium' | 'Max';
+
 const env = (key: string) => process.env[key] || '';
 const pp = (suffix: string) => env('PAYPAL_' + suffix);
 
@@ -24,26 +25,38 @@ function publicSiteUrl() {
   return (env('PUBLIC_SITE_URL') || env('QLO_PUBLIC_BASE_URL') || 'http://localhost:5173').replace(/\/$/, '');
 }
 
-async function accessToken() {
-  const id = pp('CLIENT_ID');
-  const sec = pp('CLIENT_' + 'SECRET');
-  if (!id || !sec) throw new Error('PayPal configuration is incomplete');
-  const encoded = Buffer.from(id + ':' + sec).toString('base64');
-  const r = await fetch(paypalBaseUrl() + '/v1/oauth2/token', {
+function paypalPlanId(plan: PaidPlan) {
+  return pp(plan.toUpperCase() + '_PLAN_ID');
+}
+
+async function getPayPalAccessToken() {
+  const clientId = pp('CLIENT_ID');
+  const clientSecret = pp('CLIENT_' + 'SECRET');
+  if (!clientId || !clientSecret) throw new Error('PayPal configuration is incomplete');
+
+  const credentials = Buffer.from(clientId + ':' + clientSecret).toString('base64');
+  const response = await fetch(paypalBaseUrl() + '/v1/oauth2/token', {
     method: 'POST',
-    headers: { Authorization: 'Basic ' + encoded, 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      Authorization: 'Basic ' + credentials,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
     body: 'grant_type=client_credentials'
   });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error_description || data?.message || 'PayPal token request failed');
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error_description || data?.message || 'Failed to get PayPal access token');
   return String(data.access_token || '');
 }
 
-async function createSub(input: { token: string; planId: string; userId: string; plan: PaidPlan }) {
+async function createPayPalSubscription(input: { accessToken: string; planId: string; userId: string; plan: PaidPlan }) {
   const base = publicSiteUrl();
-  const r = await fetch(paypalBaseUrl() + '/v1/billing/subscriptions', {
+  const response = await fetch(paypalBaseUrl() + '/v1/billing/subscriptions', {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + input.token, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: 'Bearer ' + input.accessToken,
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
       plan_id: input.planId,
       custom_id: `qlo:${input.userId}:${input.plan}`,
@@ -56,8 +69,10 @@ async function createSub(input: { token: string; planId: string; userId: string;
       }
     })
   });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.message || data?.details?.[0]?.description || 'PayPal subscription request failed');
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.message || data?.details?.[0]?.description || 'Failed to create PayPal subscription');
+
   const approvalUrl = (data.links || []).find((link: any) => link.rel === 'approve')?.href;
   if (!approvalUrl) throw new Error('PayPal approval URL is missing');
   return { subscriptionId: String(data.id), approvalUrl };
@@ -65,9 +80,11 @@ async function createSub(input: { token: string; planId: string; userId: string;
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   try {
     const plan = (req.body?.plan || 'Standard') as PaidPlan;
     if (!isPaidPlan(plan)) return res.status(400).json({ error: 'Invalid plan' });
+
     const sb = admin();
     const sessionToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
     if (!sb || !sessionToken) return res.status(401).json({ error: 'Login required before PayPal checkout' });
@@ -77,11 +94,12 @@ export default async function handler(req: any, res: any) {
 
     const { data: profile } = await sb.from('qv_profiles').select('country').eq('id', userData.user.id).maybeSingle();
     const country = String(profile?.country || userData.user.user_metadata?.country || 'EG').toUpperCase();
-    const planId = pp(plan.toUpperCase() + '_PLAN_ID');
+
+    const planId = paypalPlanId(plan);
     if (!planId) return res.status(500).json({ error: 'PayPal plan id is missing for ' + plan });
 
-    const token = await accessToken();
-    const created = await createSub({ token, planId, userId: userData.user.id, plan });
+    const accessToken = await getPayPalAccessToken();
+    const created = await createPayPalSubscription({ accessToken, planId, userId: userData.user.id, plan });
 
     await sb.from('qv_payments').insert({
       user_id: userData.user.id,
