@@ -182,7 +182,7 @@ export default async function handler(req: any, res: any) {
     const plan = parsed.plan || planFromProviderPlanId(planId);
     const userId = parsed.userId;
 
-    await sb.from('qv_provider_events').insert({
+    await sb.from('qv_provider_events').upsert({
       event_id: event.id,
       event_type: eventType,
       provider: 'paypal',
@@ -191,7 +191,7 @@ export default async function handler(req: any, res: any) {
       provider_plan_id: planId || null,
       plan: plan || null,
       raw: event
-    });
+    }, { onConflict: 'event_id' });
 
     if (!userId || !plan) return res.status(200).json({ ok: true, ignored: 'unmapped_subscription' });
 
