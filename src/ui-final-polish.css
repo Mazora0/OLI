@@ -198,6 +198,39 @@ select option {
   }
 }
 
+/* Model-only composer settings. The old mode dropdown is intentionally removed from the visible UI. */
+.qlo-composer-settings {
+  grid-template-columns: 1fr !important;
+  gap: .5rem !important;
+}
+
+.qlo-composer-settings .qlo-select-wrap:nth-of-type(n+2),
+.qlo-composer-settings > label:nth-of-type(n+2),
+.qlo-composer-settings > div:nth-of-type(n+2):not(.qlo-model-picker),
+.qlo-composer-settings select:not(:first-of-type) {
+  display: none !important;
+}
+
+.qlo-composer-settings .qlo-setting-label,
+.qlo-composer-settings .qlo-select-wrap > span,
+.qlo-composer-settings label > span {
+  font-size: .72rem !important;
+  color: var(--muted) !important;
+}
+
+.qlo-model-picker {
+  width: 100%;
+}
+
+.qlo-model-current {
+  min-height: 62px !important;
+  border-radius: 1.25rem !important;
+}
+
+.qlo-model-menu {
+  z-index: 160 !important;
+}
+
 /* Response animation: normal chat replies feel typed, not dumped. */
 .qlo-ai-message,
 .message-bubble:has(.markdownish) {
