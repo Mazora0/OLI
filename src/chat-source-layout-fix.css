@@ -1,0 +1,96 @@
+/* Qalvero chat emergency layout guard. Because apparently source cards decided to become modern art. */
+.qlo-chat-main,
+.chat-shell,
+.chat-area,
+.messages,
+.message-list {
+  overflow-x: hidden !important;
+}
+
+.qlo-ai-message,
+.qlo-user-message,
+.message-bubble {
+  position: relative !important;
+  max-width: min(92vw, 760px) !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  white-space: pre-wrap !important;
+}
+
+.qlo-ai-message a,
+.message-bubble a {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* Source/citation cards */
+[class*="source"],
+[class*="citation"],
+[class*="reference"],
+[class*="compact-source"] {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+[class*="source"] img,
+[class*="citation"] img,
+[class*="reference"] img,
+[class*="compact-source"] img {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+}
+
+[class*="source"] *,
+[class*="citation"] *,
+[class*="reference"] *,
+[class*="compact-source"] * {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Keep assistant action buttons under the message, not floating over the whole page. */
+.qlo-message-actions,
+.qlo-extra-message-actions {
+  position: static !important;
+  z-index: 2 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+.qlo-extra-message-actions {
+  width: auto !important;
+  max-width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.qlo-extra-message-action,
+.qlo-message-action {
+  flex: 0 0 auto !important;
+}
+
+/* If old/native action rows float globally, keep them sane. */
+.qlo-ai-message + div,
+.message-bubble + div {
+  max-width: min(92vw, 760px) !important;
+  overflow: visible !important;
+}
+
+/* Mobile hardening */
+@media (max-width: 640px) {
+  .qlo-ai-message,
+  .qlo-user-message,
+  .message-bubble {
+    max-width: calc(100vw - 34px) !important;
+  }
+
+  [class*="source"],
+  [class*="citation"],
+  [class*="reference"],
+  [class*="compact-source"] {
+    width: 100% !important;
+    border-radius: 1rem !important;
+  }
+}
