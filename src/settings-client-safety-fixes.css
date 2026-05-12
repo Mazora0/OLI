@@ -1,0 +1,29 @@
+.qlo-fixed-country-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  max-width: 190px;
+  padding: .55rem .85rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.045);
+  color: rgba(248,250,252,.88);
+  font-size: .86rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qlo-fixed-country-badge::after {
+  content: ' • fixed';
+  margin-inline-start: .35rem;
+  color: rgba(248,250,252,.42);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+html[dir='rtl'] .qlo-fixed-country-badge::after {
+  content: ' • ثابت';
+}
