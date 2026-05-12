@@ -1,0 +1,50 @@
+.qlo-extra-message-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .45rem;
+  vertical-align: middle;
+}
+
+.qlo-extra-message-action {
+  width: 2.08rem;
+  height: 2.08rem;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: .78rem;
+  background: transparent;
+  color: rgba(248,250,252,.78);
+  opacity: .92;
+  transition: transform .15s ease, opacity .15s ease, background .15s ease, color .15s ease;
+}
+
+.qlo-extra-message-action:hover,
+.qlo-extra-message-action:focus-visible {
+  opacity: 1;
+  color: white;
+  background: rgba(255,255,255,.08);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.qlo-extra-message-action.qlo-action-done {
+  color: white;
+  background: rgba(249,115,22,.22);
+}
+
+.qlo-ai-message > .qlo-extra-message-actions,
+.message-bubble > .qlo-extra-message-actions {
+  display: flex;
+  margin-top: .55rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 520px) {
+  .qlo-extra-message-actions { gap: .3rem; }
+  .qlo-extra-message-action {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: .7rem;
+  }
+}
