@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { uploadJsonToGCS } from './_gcloud';
 
 const MAX_PROMPT_CHARS = Number(process.env.QLO_TRAINING_MAX_PROMPT_CHARS || 8000);
 const MAX_RESPONSE_CHARS = Number(process.env.QLO_TRAINING_MAX_RESPONSE_CHARS || 12000);
@@ -124,6 +123,7 @@ export default async function handler(req: any, res: any) {
     token_estimate: Math.ceil((prompt.length + response.length) / 4),
     quality_rating: typeof req.body?.rating === 'number' ? Math.max(-1, Math.min(1, req.body.rating)) : null
   };
+
   const { data: inserted, error } = await admin
     .from('qlo_training_examples')
     .insert(payload)
@@ -131,22 +131,12 @@ export default async function handler(req: any, res: any) {
     .single();
   if (error) return res.status(500).json({ error: error.message });
 
-  // Google Cloud auto-save: each accepted training example is mirrored as one JSON object.
-  // This avoids rewriting the entire dataset on every chat message and keeps credit/storage use sane.
-  let cloud_sync: unknown = { skipped: 'disabled' };
-  if (process.env.QLO_GCLOUD_AUTO_SYNC !== 'off') {
-    try {
-      const day = new Date().toISOString().slice(0, 10);
-      const id = inserted?.id || `${Date.now()}`;
-      cloud_sync = await uploadJsonToGCS(`qlo1/raw/${day}/${id}.json`, {
-        id,
-        created_at: inserted?.created_at || new Date().toISOString(),
-        ...payload
-      });
-    } catch (cloudError: any) {
-      cloud_sync = { ok: false, error: cloudError?.message || 'Google Cloud auto-save failed.' };
-    }
-  }
-
-  return res.status(200).json({ ok: true, byte_size, language_tag, cloud_sync });
+  return res.status(200).json({
+    ok: true,
+    id: inserted?.id || null,
+    created_at: inserted?.created_at || null,
+    byte_size,
+    language_tag,
+    cloud_sync: { skipped: 'google_cloud_removed' }
+  });
 }
