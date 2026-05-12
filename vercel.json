@@ -1,6 +1,22 @@
 {
   "rewrites": [
     {
+      "source": "/api/qlo-mcp",
+      "destination": "/api/mcp?route=qlo-mcp"
+    },
+    {
+      "source": "/api/qlo-mcp/:path*",
+      "destination": "/api/mcp?route=qlo-mcp&path=:path*"
+    },
+    {
+      "source": "/api/qlo-tool-hub",
+      "destination": "/api/mcp?route=qlo-tool-hub"
+    },
+    {
+      "source": "/api/qlo-tool-hub/:path*",
+      "destination": "/api/mcp?route=qlo-tool-hub&path=:path*"
+    },
+    {
       "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }
