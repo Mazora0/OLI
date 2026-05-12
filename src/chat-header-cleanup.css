@@ -1,0 +1,7 @@
+.qlo-hide-main-chat-header-item {
+  display: none !important;
+}
+
+.notranslate {
+  translate: no;
+}
