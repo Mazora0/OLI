@@ -27,6 +27,42 @@ async function copyText(text: string) {
   }
 }
 
+function getPreferredVoice(text: string) {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const isArabic = /[\u0600-\u06FF]/.test(text);
+  if (!isArabic) {
+    return voices.find((voice) => voice.lang.toLowerCase().startsWith('en-us'))
+      || voices.find((voice) => voice.lang.toLowerCase().startsWith('en'))
+      || null;
+  }
+
+  const normalized = voices.map((voice) => ({
+    voice,
+    lang: voice.lang.toLowerCase(),
+    name: voice.name.toLowerCase()
+  }));
+
+  return normalized.find((item) => item.lang === 'ar-eg')?.voice
+    || normalized.find((item) => item.lang.startsWith('ar-eg'))?.voice
+    || normalized.find((item) => item.name.includes('egypt') || item.name.includes('egyptian') || item.name.includes('مصر'))?.voice
+    || normalized.find((item) => item.lang.startsWith('ar'))?.voice
+    || null;
+}
+
+function speakNow(text: string) {
+  const utterance = new SpeechSynthesisUtterance(text.slice(0, 3600));
+  const isArabic = /[\u0600-\u06FF]/.test(text);
+  const voice = getPreferredVoice(text);
+  utterance.lang = isArabic ? 'ar-EG' : 'en-US';
+  if (voice) utterance.voice = voice;
+  utterance.rate = isArabic ? 0.96 : 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
 function speakText(text: string) {
   const speechText = prepareTextForSpeech(text);
   if (!('speechSynthesis' in window)) {
@@ -37,11 +73,23 @@ function speakText(text: string) {
     window.speechSynthesis.cancel();
     return;
   }
-  const utterance = new SpeechSynthesisUtterance(speechText.slice(0, 3600));
-  utterance.lang = /[\u0600-\u06FF]/.test(speechText) ? 'ar-EG' : 'en-US';
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  window.speechSynthesis.speak(utterance);
+
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length) {
+    speakNow(speechText);
+    return;
+  }
+
+  const speakAfterVoicesLoad = () => {
+    window.speechSynthesis.removeEventListener('voiceschanged', speakAfterVoicesLoad);
+    speakNow(speechText);
+  };
+
+  window.speechSynthesis.addEventListener('voiceschanged', speakAfterVoicesLoad);
+  window.setTimeout(() => {
+    window.speechSynthesis.removeEventListener('voiceschanged', speakAfterVoicesLoad);
+    if (!window.speechSynthesis.speaking) speakNow(speechText);
+  }, 500);
 }
 
 async function shareText(text: string) {
