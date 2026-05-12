@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "node -e \"console.log('No unit tests configured in this repository yet')\"",
-    "ci": "pnpm run typecheck && pnpm run test && pnpm run build"
+    "ci": "yarn typecheck && yarn test && yarn build"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
@@ -34,7 +34,7 @@
     "typescript": "^5.7.2",
     "vite": "^5.4.11"
   },
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "yarn@1.22.22",
   "engines": {
     "node": "20.x"
   }
