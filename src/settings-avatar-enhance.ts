@@ -24,10 +24,54 @@ function addPencilButton() {
   avatarRing.appendChild(button);
 }
 
+function findSettingRow(labels: string[]) {
+  const rows = Array.from(document.querySelectorAll<HTMLElement>('.setting-row, .row-card'));
+  return rows.find((row) => labels.some((label) => (row.innerText || '').toLowerCase().includes(label.toLowerCase()))) || null;
+}
+
+function lockBillingCountryRow() {
+  const row = findSettingRow(['بلد الفوترة', 'billing country']);
+  if (!row || row.dataset.qloCountryLocked === '1') return;
+  const select = row.querySelector<HTMLSelectElement>('select');
+  if (!select) return;
+  const selected = select.selectedOptions?.[0]?.textContent || select.value;
+  const badge = document.createElement('span');
+  badge.className = 'qlo-fixed-country-badge';
+  badge.textContent = selected;
+  badge.title = document.documentElement.dir === 'rtl'
+    ? 'يتم اختيار البلد مرة واحدة عند إنشاء الحساب'
+    : 'Country is selected once during signup';
+  select.replaceWith(badge);
+  row.dataset.qloCountryLocked = '1';
+}
+
+function normalizeChatRetentionMeta() {
+  try {
+    const raw = localStorage.getItem('qv_threads_meta');
+    const meta = raw ? JSON.parse(raw) : {};
+    localStorage.setItem('qv_threads_meta', JSON.stringify({
+      ...meta,
+      strategy: 'text-only-monthly',
+      retention_days: 30,
+      stored_content: 'text-only'
+    }));
+  } catch {
+    localStorage.setItem('qv_threads_meta', JSON.stringify({
+      strategy: 'text-only-monthly',
+      retention_days: 30,
+      stored_content: 'text-only'
+    }));
+  }
+}
+
 function markSettingsPage() {
   const hasSettings = Boolean(document.querySelector('.setting-row'));
   document.body.classList.toggle('qlo-settings-page', hasSettings);
-  if (hasSettings) addPencilButton();
+  if (hasSettings) {
+    addPencilButton();
+    lockBillingCountryRow();
+    normalizeChatRetentionMeta();
+  }
 }
 
 function start() {
