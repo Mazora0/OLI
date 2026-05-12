@@ -1,3 +1,5 @@
+import { cleanModelOutput, prepareTextForSpeech } from './lib/text-engine';
+
 function isArabicPage() {
   return document.documentElement.dir === 'rtl' || document.documentElement.lang?.startsWith('ar');
 }
@@ -5,9 +7,9 @@ function isArabicPage() {
 function cleanMessageText(message: HTMLElement) {
   const clone = message.cloneNode(true) as HTMLElement;
   clone.querySelectorAll('.qlo-extra-message-actions,.qlo-copy-block-btn,.qlo-copy-block-head').forEach((node) => node.remove());
-  return (clone.innerText || clone.textContent || '')
+  return cleanModelOutput((clone.innerText || clone.textContent || '')
     .replace(/\n{4,}/g, '\n\n')
-    .trim();
+    .trim());
 }
 
 async function copyText(text: string) {
@@ -26,27 +28,29 @@ async function copyText(text: string) {
 }
 
 function speakText(text: string) {
+  const speechText = prepareTextForSpeech(text);
   if (!('speechSynthesis' in window)) {
-    copyText(text);
+    copyText(speechText);
     return;
   }
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
     return;
   }
-  const utterance = new SpeechSynthesisUtterance(text.slice(0, 3600));
-  utterance.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-EG' : 'en-US';
+  const utterance = new SpeechSynthesisUtterance(speechText.slice(0, 3600));
+  utterance.lang = /[\u0600-\u06FF]/.test(speechText) ? 'ar-EG' : 'en-US';
   utterance.rate = 1;
   utterance.pitch = 1;
   window.speechSynthesis.speak(utterance);
 }
 
 async function shareText(text: string) {
+  const clean = cleanModelOutput(text);
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Qalvero AI', text });
+      await navigator.share({ title: 'Qalvero AI', text: clean });
     } else {
-      await copyText(text);
+      await copyText(clean);
     }
   } catch {
     // Share cancelled. Fine, the universe continues its pointless spin.
