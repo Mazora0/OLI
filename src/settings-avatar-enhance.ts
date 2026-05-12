@@ -51,16 +51,36 @@ function normalizeChatRetentionMeta() {
     const meta = raw ? JSON.parse(raw) : {};
     localStorage.setItem('qv_threads_meta', JSON.stringify({
       ...meta,
-      strategy: 'text-only-monthly',
-      retention_days: 30,
+      strategy: 'local-text-only-cloud-monthly',
+      local_retention: 'forever',
+      local_retention_days: null,
+      cloud_retention_days: 30,
       stored_content: 'text-only'
     }));
   } catch {
     localStorage.setItem('qv_threads_meta', JSON.stringify({
-      strategy: 'text-only-monthly',
-      retention_days: 30,
+      strategy: 'local-text-only-cloud-monthly',
+      local_retention: 'forever',
+      local_retention_days: null,
+      cloud_retention_days: 30,
       stored_content: 'text-only'
     }));
+  }
+}
+
+function normalizeVisibleRetentionText() {
+  const text = document.documentElement.dir === 'rtl'
+    ? 'المحلي محفوظ على الجهاز. سجل الحساب محفوظ لمدة شهر واحد.'
+    : 'Local chats stay on this device. Account chat is kept for one month.';
+  const rows = Array.from(document.querySelectorAll<HTMLElement>('.setting-row, .row-card, .panel, .card'));
+  for (const row of rows) {
+    const current = row.innerText || '';
+    if (!/60|180|retention|احتفاظ|history|سجل|chat storage|local/i.test(current)) continue;
+    row.querySelectorAll<HTMLElement>('.desc, .soft-text, p, small').forEach((node) => {
+      if (/60|180|retention|احتفاظ|history|سجل|chat storage|local/i.test(node.innerText || '')) {
+        node.textContent = text;
+      }
+    });
   }
 }
 
@@ -71,6 +91,7 @@ function markSettingsPage() {
     addPencilButton();
     lockBillingCountryRow();
     normalizeChatRetentionMeta();
+    normalizeVisibleRetentionText();
   }
 }
 
