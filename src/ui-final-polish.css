@@ -126,11 +126,42 @@ select option {
   font-size: 16px !important;
 }
 
-/* Suggestions: less crowding, no visual collision. */
+/* Suggestions: less crowding, no visual collision, auto hide after 10 seconds. */
 .qlo-smart-suggestions {
   max-width: min(100%, 920px);
+  max-height: 180px;
   margin-inline: auto;
   overflow: hidden;
+  transform-origin: bottom center;
+  animation: qloSuggestionsAutoHide 10s ease forwards;
+}
+
+.qlo-smart-suggestions:hover,
+.qlo-smart-suggestions:focus-within {
+  animation-play-state: paused;
+}
+
+@keyframes qloSuggestionsAutoHide {
+  0%, 82% {
+    opacity: 1;
+    max-height: 180px;
+    margin-top: initial;
+    margin-bottom: initial;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    pointer-events: none;
+    transform: translateY(10px) scale(.985);
+    visibility: hidden;
+  }
 }
 
 .qlo-suggestions-scroll {
@@ -167,10 +198,165 @@ select option {
   }
 }
 
+/* Response animation: normal chat replies feel typed, not dumped. */
+.qlo-ai-message,
+.message-bubble:has(.markdownish) {
+  animation: qloAssistantBubbleIn .32s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.qlo-ai-message .markdownish,
+.message-bubble .markdownish {
+  animation: qloSoftTypingReveal .75s steps(18, end) both;
+}
+
+.qlo-ai-message .markdownish::after {
+  content: '';
+  display: inline-block;
+  width: .42em;
+  height: 1.05em;
+  margin-inline-start: .16em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-1) 76%, white 24%);
+  vertical-align: -.16em;
+  animation: qloCaretBlink .9s steps(2, start) 6 both;
+}
+
+@keyframes qloAssistantBubbleIn {
+  from { opacity: 0; transform: translateY(10px) scale(.985); filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes qloSoftTypingReveal {
+  from { opacity: .22; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes qloCaretBlink {
+  0%, 45% { opacity: .95; }
+  46%, 100% { opacity: 0; }
+}
+
+/* Working-state cards: thinking / web search / agent building / research. */
+.qlo-thinking-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)) !important;
+  animation: qloThinkingFloat 1.4s ease-in-out infinite, qloAssistantBubbleIn .24s ease both;
+}
+
+.qlo-thinking-card::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  opacity: .48;
+  background: conic-gradient(from 180deg, transparent, rgba(249,115,22,.28), transparent, rgba(225,29,116,.20), transparent);
+  animation: qloOrbSpin 2.2s linear infinite;
+}
+
+.qlo-thinking-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgba(8, 7, 15, .78);
+}
+
+.qlo-thinking-web {
+  border-color: rgba(56,189,248,.35) !important;
+}
+
+.qlo-thinking-web::before {
+  background:
+    linear-gradient(90deg, transparent 0 18%, rgba(56,189,248,.26) 45%, transparent 72%),
+    radial-gradient(circle at 20% 50%, rgba(56,189,248,.28), transparent 30%);
+  animation: qloWebScan 1.25s ease-in-out infinite;
+}
+
+.qlo-thinking-agent {
+  border-color: rgba(249,115,22,.42) !important;
+}
+
+.qlo-thinking-agent::before {
+  background:
+    repeating-linear-gradient(135deg, rgba(249,115,22,.16) 0 10px, rgba(225,29,116,.13) 10px 20px, transparent 20px 30px),
+    radial-gradient(circle at 55% 40%, rgba(249,115,22,.22), transparent 42%);
+  animation: qloAgentBuild 1.05s linear infinite;
+}
+
+.qlo-thinking-research,
+.qlo-thinking-study {
+  border-color: rgba(34,197,94,.34) !important;
+}
+
+.qlo-thinking-research::before,
+.qlo-thinking-study::before {
+  background:
+    linear-gradient(115deg, transparent 0 20%, rgba(34,197,94,.19) 42%, transparent 64%),
+    radial-gradient(circle at 75% 35%, rgba(34,197,94,.18), transparent 34%);
+  animation: qloResearchSweep 1.5s ease-in-out infinite;
+}
+
+.qlo-thinking-pro,
+.qlo-thinking-chat {
+  border-color: rgba(168,85,247,.30) !important;
+}
+
+@keyframes qloThinkingFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes qloOrbSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes qloWebScan {
+  0% { transform: translateX(-35%); opacity: .22; }
+  50% { opacity: .62; }
+  100% { transform: translateX(35%); opacity: .22; }
+}
+
+@keyframes qloAgentBuild {
+  to { transform: translate(28px, -28px); }
+}
+
+@keyframes qloResearchSweep {
+  0%, 100% { transform: translateX(-25%) skewX(-8deg); opacity: .24; }
+  50% { transform: translateX(25%) skewX(-8deg); opacity: .58; }
+}
+
+.qlo-dots i {
+  animation: qloDotBounce 1.05s ease-in-out infinite !important;
+}
+
+.qlo-dots i:nth-child(2) { animation-delay: .14s !important; }
+.qlo-dots i:nth-child(3) { animation-delay: .28s !important; }
+
+@keyframes qloDotBounce {
+  0%, 80%, 100% { transform: translateY(0) scale(.88); opacity: .34; }
+  38% { transform: translateY(-5px) scale(1.08); opacity: 1; }
+}
+
 /* Reduce heavy blur on weaker mobile browsers. */
 @media (max-width: 720px) {
   .glass, .card, .panel, .auth-card, .surface,
   .row-card, .composer, .qlo-composer, .app-header, .drawer-surface {
     backdrop-filter: blur(12px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qlo-smart-suggestions,
+  .qlo-ai-message,
+  .message-bubble,
+  .qlo-thinking-card,
+  .qlo-ai-message .markdownish,
+  .message-bubble .markdownish,
+  .qlo-dots i {
+    animation: none !important;
   }
 }
