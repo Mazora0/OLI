@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, MessageSquareText, Plus, Trash2, Zap } from 'lucide-react';
+import { CreditCard, Lock, MessageSquareText, Plus, Settings, Trash2, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { guestLimits, limits, publicPlanName } from '../lib/pricing';
 import { supabase } from '../lib/supabase';
@@ -10,8 +10,8 @@ import { pruneQalveroChatHistory, type StoredThread } from '../chat-history-rete
 type UsageRow = { tier: 'flash' | 'pro'; messages_used: number; messages_limit: number };
 
 const copy = {
-  ar: { plan: 'الخطة', guest: 'ضيف', login: 'تسجيل الدخول', upgrade: 'ترقية', newChat: 'محادثة جديدة', recentChats: 'المحادثات', noChats: 'لسه مفيش محادثات محفوظة.', textOnly: 'يتم حفظ النص فقط. المحادثات الأقدم من 30 يوم تُحذف تلقائيًا.', cleanOld: 'تنظيف', usage: 'الاستخدام', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'الموديلات', saved: 'محفوظ' },
-  en: { plan: 'Plan', guest: 'Guest', login: 'Login', upgrade: 'Upgrade', newChat: 'New chat', recentChats: 'Chats', noChats: 'No saved chats yet.', textOnly: 'Text only is saved. Chats older than 30 days are cleaned automatically.', cleanOld: 'Clean', usage: 'Usage', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'Models', saved: 'Saved' }
+  ar: { settings: 'الإعدادات', plan: 'الخطة', guest: 'ضيف', login: 'تسجيل الدخول', upgrade: 'ترقية', newChat: 'محادثة جديدة', recentChats: 'الدردشات الأخيرة', noChats: 'لسه مفيش محادثات محفوظة.', textOnly: 'يتم حفظ النص فقط. المحادثات الأقدم من 30 يوم تُحذف تلقائيًا.', cleanOld: 'تنظيف', usage: 'الاستخدام', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'الموديلات', saved: 'محفوظ' },
+  en: { settings: 'Settings', plan: 'Plan', guest: 'Guest', login: 'Login', upgrade: 'Upgrade', newChat: 'New chat', recentChats: 'Recent chats', noChats: 'No saved chats yet.', textOnly: 'Text only is saved. Chats older than 30 days are cleaned automatically.', cleanOld: 'Clean', usage: 'Usage', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'Models', saved: 'Saved' }
 } as const;
 
 function chatPreview(thread: StoredThread) {
@@ -30,7 +30,6 @@ export default function Dashboard() {
   const isGuest = !profile;
   const plan = (profile?.plan || 'Free') as keyof typeof limits;
   const avatar = getAvatar(profile?.avatar_id);
-  const displayName = profile?.full_name || profile?.email?.split('@')[0] || c.guest;
   const [usage, setUsage] = useState<UsageRow[]>([]);
   const [threads, setThreads] = useState<StoredThread[]>([]);
 
@@ -82,15 +81,31 @@ export default function Dashboard() {
 
   return (
     <section className="mx-auto max-w-4xl pb-10">
-      <div className="mb-5 rounded-[2rem] border border-white/10 bg-white/5 p-5 text-center">
-        <div className="mx-auto avatar-ring qlo-dashboard-avatar h-[96px] w-[96px] overflow-hidden">
-          <div className={`avatar-core grid h-full w-full place-items-center rounded-full bg-gradient-to-br ${avatar.gradient}`}>
-            <span className="qlo-cartoon-face" />
+      <div className="mb-5 rounded-[2rem] border border-white/10 bg-white/5 p-4 md:p-5">
+        <div className="flex items-center justify-between gap-4">
+          <Link to="/settings" className="flex min-w-0 items-center gap-3 rounded-[1.5rem] border border-white/10 bg-black/20 px-3 py-2 transition hover:border-[var(--accent-1)]/40">
+            <div className="avatar-ring qlo-dashboard-avatar-small h-12 w-12 shrink-0 overflow-hidden">
+              <div className={`avatar-core grid h-full w-full place-items-center rounded-full bg-gradient-to-br ${avatar.gradient}`}>
+                <span className="qlo-cartoon-face" />
+              </div>
+            </div>
+            <div className="hidden min-w-0 sm:block">
+              <div className="truncate text-sm font-black">{profile?.email || c.guest}</div>
+              <div className="truncate text-xs soft-text">{c.plan}: {isGuest ? c.guest : publicPlanName(plan)}</div>
+            </div>
+          </Link>
+
+          <div className="min-w-0 flex-1 text-end">
+            <h1 className="text-4xl font-black md:text-6xl">{c.settings}</h1>
+            <p className="mt-1 text-sm soft-text">Qalvero AI</p>
           </div>
+
+          <Link to="/settings" className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-[var(--accent-1)] transition hover:bg-white/10" aria-label={c.settings}>
+            <Settings size={22} />
+          </Link>
         </div>
-        <h1 className="mt-4 text-3xl font-black md:text-5xl">{displayName}</h1>
-        <p className="mt-2 text-sm soft-text">{profile?.email || c.guest} · {c.plan}: <b className="strong-muted">{isGuest ? c.guest : publicPlanName(plan)}</b></p>
-        <div className="mt-5 flex flex-wrap justify-center gap-2">
+
+        <div className="mt-5 flex flex-wrap justify-center gap-2 md:justify-end">
           <button onClick={startNewChat} className="btn btn-primary"><Plus size={18} /> {c.newChat}</button>
           {isGuest ? <Link to="/login" className="btn"><Lock size={18} /> {c.login}</Link> : <Link to="/pricing" className="btn"><CreditCard size={18} /> {c.upgrade}</Link>}
         </div>
