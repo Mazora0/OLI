@@ -8,15 +8,15 @@ type StoredThread = {
   updatedAt?: string;
   model?: string;
   mode?: string;
-  storagePolicy?: 'text-only-monthly';
+  storagePolicy?: 'local-text-only';
 };
 
 const HISTORY_KEY = 'qv_threads';
 const HISTORY_META_KEY = 'qv_threads_meta';
 const ACTIVE_THREAD_KEY = 'qv_active_thread_id';
-const RETENTION_DAYS = 30;
-const MAX_THREADS = 60;
-const MAX_MESSAGES_PER_THREAD = 80;
+const CLOUD_RETENTION_DAYS = 30;
+const MAX_THREADS = 120;
+const MAX_MESSAGES_PER_THREAD = 120;
 const MAX_MESSAGE_CHARS = 12000;
 
 function asTime(value?: string) {
@@ -60,17 +60,13 @@ function cleanThread(thread: any): StoredThread | null {
     updatedAt,
     model: safeText(thread?.model).slice(0, 80) || undefined,
     mode: safeText(thread?.mode).slice(0, 80) || undefined,
-    storagePolicy: 'text-only-monthly'
+    storagePolicy: 'local-text-only'
   };
 }
 
-function pruneList(parsed: unknown) {
+function cleanList(parsed: unknown) {
   if (!Array.isArray(parsed)) return [] as StoredThread[];
-  const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
-  return parsed
-    .map(cleanThread)
-    .filter(Boolean)
-    .filter((thread) => asTime((thread as StoredThread).updatedAt || (thread as StoredThread).createdAt) >= cutoff) as StoredThread[];
+  return parsed.map(cleanThread).filter(Boolean) as StoredThread[];
 }
 
 function sortLimit(threads: StoredThread[]) {
@@ -81,8 +77,10 @@ function sortLimit(threads: StoredThread[]) {
 
 function writeMeta(originalSetItem = localStorage.setItem.bind(localStorage)) {
   originalSetItem(HISTORY_META_KEY, JSON.stringify({
-    strategy: 'text-only-monthly',
-    retention_days: RETENTION_DAYS,
+    strategy: 'local-text-only-cloud-monthly',
+    local_retention: 'forever',
+    local_retention_days: null,
+    cloud_retention_days: CLOUD_RETENTION_DAYS,
     max_threads: MAX_THREADS,
     max_messages_per_thread: MAX_MESSAGES_PER_THREAD,
     stored_content: 'text-only',
@@ -93,17 +91,17 @@ function writeMeta(originalSetItem = localStorage.setItem.bind(localStorage)) {
 export function pruneQalveroChatHistory() {
   try {
     const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const pruned = sortLimit(pruneList(parsed));
+    const cleaned = sortLimit(cleanList(parsed));
     const originalSetItem = localStorage.setItem.bind(localStorage);
-    originalSetItem(HISTORY_KEY, JSON.stringify(pruned));
+    originalSetItem(HISTORY_KEY, JSON.stringify(cleaned));
     writeMeta(originalSetItem);
 
     const active = localStorage.getItem(ACTIVE_THREAD_KEY);
-    if (active && !pruned.some((thread) => thread.id === active)) {
+    if (active && !cleaned.some((thread) => thread.id === active)) {
       localStorage.removeItem(ACTIVE_THREAD_KEY);
     }
 
-    return pruned;
+    return cleaned;
   } catch {
     return [] as StoredThread[];
   }
@@ -114,8 +112,15 @@ function patchThreadStorage() {
   localStorage.setItem = (key: string, value: string) => {
     if (key === HISTORY_META_KEY) {
       try {
-        const meta = { ...JSON.parse(value || '{}'), strategy: 'text-only-monthly', retention_days: RETENTION_DAYS, stored_content: 'text-only' };
-        return originalSetItem(key, JSON.stringify(meta));
+        const meta = JSON.parse(value || '{}');
+        return originalSetItem(key, JSON.stringify({
+          ...meta,
+          strategy: 'local-text-only-cloud-monthly',
+          local_retention: 'forever',
+          local_retention_days: null,
+          cloud_retention_days: CLOUD_RETENTION_DAYS,
+          stored_content: 'text-only'
+        }));
       } catch {
         return originalSetItem(key, value);
       }
@@ -124,8 +129,8 @@ function patchThreadStorage() {
     if (key !== HISTORY_KEY) return originalSetItem(key, value);
     try {
       const parsed = JSON.parse(value || '[]');
-      const pruned = sortLimit(pruneList(parsed));
-      originalSetItem(key, JSON.stringify(pruned));
+      const cleaned = sortLimit(cleanList(parsed));
+      originalSetItem(key, JSON.stringify(cleaned));
       writeMeta(originalSetItem);
       return;
     } catch {
