@@ -1,26 +1,45 @@
 const originalFetch = window.fetch.bind(window);
 
-function isQalveroAiRequest(input: RequestInfo | URL) {
-  const value = typeof input === 'string'
+function requestUrl(input: RequestInfo | URL) {
+  return typeof input === 'string'
     ? input
     : input instanceof URL
       ? input.toString()
       : input.url;
-  return value.includes('/api/qalvero-ai');
+}
+
+function isQalveroAiRequest(input: RequestInfo | URL) {
+  const value = requestUrl(input);
+  return value.includes('/api/qalvero-ai') && !value.includes('/api/qalvero-ai-lite');
+}
+
+function fallbackUrl(input: RequestInfo | URL) {
+  const value = requestUrl(input);
+  return value.replace('/api/qalvero-ai', '/api/qalvero-ai-lite');
+}
+
+async function tryLiteFallback(input: RequestInfo | URL, init?: RequestInit) {
+  try {
+    const lite = await originalFetch(fallbackUrl(input), init);
+    const clone = lite.clone();
+    const raw = await clone.text().catch(() => '');
+    if (!raw) return null;
+    JSON.parse(raw);
+    return lite;
+  } catch {
+    return null;
+  }
 }
 
 function safeAiErrorMessage(raw: string, status: number) {
   const lower = raw.toLowerCase();
-  if (lower.includes('a server error') || status >= 500) {
-    return 'اتصال الذكاء الاصطناعي مش متفعل دلوقتي. راجع مفاتيح AI في Vercel Environment Variables ثم اعمل Redeploy بدون cache.';
-  }
   if (lower.includes('unauthorized') || status === 401 || status === 403) {
     return 'في مشكلة صلاحيات أو مفتاح API غير صحيح. راجع مفاتيح الذكاء الاصطناعي في Vercel.';
   }
   if (lower.includes('rate') || status === 429) {
     return 'الموديل وصل لحد الاستخدام مؤقتًا. جرّب بعد شوية أو بدّل الموديل.';
   }
-  return 'حصل خطأ في اتصال الذكاء الاصطناعي، لكن الواجهة اتحكمت في الخطأ بدل رسالة JSON المكسورة.';
+  return 'الموديل مش قادر يرد حاليًا. جرّب تبديل الموديل أو راجع Vercel Function Logs.';
 }
 
 window.fetch = async (input, init) => {
@@ -36,6 +55,9 @@ window.fetch = async (input, init) => {
     JSON.parse(raw);
     return response;
   } catch {
+    const lite = await tryLiteFallback(input, init);
+    if (lite) return lite;
+
     const message = safeAiErrorMessage(raw, response.status);
     const body = JSON.stringify({
       ok: false,
