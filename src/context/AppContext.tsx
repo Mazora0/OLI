@@ -119,17 +119,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [accent]);
 
   async function updateCountry(next: Country) {
-    if (!supabase || !session?.user) return;
+    // Country is chosen once during account signup. Keep this setter only for guest previews.
+    if (session?.user) return;
     setCountry(next);
-    await supabase
-      .from('qv_profiles')
-      .update({ country: next })
-      .eq('id', session.user.id);
-    await refreshProfile();
   }
-
-  // Billing country is intentionally account-bound. Guests always use the default
-  // preview country and cannot persist or switch regions through localStorage.
 
   const v = useMemo(
     () => ({ lang, setLang, theme, setTheme, accent, setAccent, country, setCountry: updateCountry, session, user, profile, loadingAuth, refreshProfile, signOut }),
