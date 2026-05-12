@@ -75,6 +75,19 @@ function sortLimit(threads: StoredThread[]) {
     .slice(0, MAX_THREADS);
 }
 
+function legacySafeList(parsed: unknown) {
+  // Chat.tsx still has legacy 60/180-day local pruning. Keep local threads safe
+  // before that file reads them, while preserving the real creation date separately.
+  const now = new Date().toISOString();
+  return sortLimit(cleanList(parsed)).map((thread) => ({
+    ...thread,
+    originalCreatedAt: (thread as any).originalCreatedAt || thread.createdAt,
+    originalUpdatedAt: (thread as any).originalUpdatedAt || thread.updatedAt || thread.createdAt,
+    updatedAt: now,
+    storagePolicy: 'local-text-only'
+  }));
+}
+
 function writeMeta(originalSetItem = localStorage.setItem.bind(localStorage)) {
   originalSetItem(HISTORY_META_KEY, JSON.stringify({
     strategy: 'local-text-only-cloud-monthly',
@@ -108,7 +121,20 @@ export function pruneQalveroChatHistory() {
 }
 
 function patchThreadStorage() {
+  const originalGetItem = localStorage.getItem.bind(localStorage);
   const originalSetItem = localStorage.setItem.bind(localStorage);
+
+  localStorage.getItem = (key: string) => {
+    const value = originalGetItem(key);
+    if (key !== HISTORY_KEY || !value) return value;
+    try {
+      const safe = legacySafeList(JSON.parse(value || '[]'));
+      return JSON.stringify(safe);
+    } catch {
+      return value;
+    }
+  };
+
   localStorage.setItem = (key: string, value: string) => {
     if (key === HISTORY_META_KEY) {
       try {
