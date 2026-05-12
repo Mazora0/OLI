@@ -16,6 +16,66 @@ async function exists(filePath) {
   }
 }
 
+async function repairEgyptianLocalReplyEngine() {
+  const localReplyFile = path.join(serverDir, '_egyptian_daily_replies.ts');
+  if (!(await exists(localReplyFile))) return;
+
+  const original = await readFile(localReplyFile, 'utf8');
+  let updated = original;
+
+  updated = updated.replace(
+    /seed\?: string;\n};/,
+    'seed?: string;\n  messageCount?: string | number;\n};'
+  );
+
+  if (updated !== original) {
+    await writeFile(localReplyFile, updated);
+  }
+}
+
+async function connectEgyptianLocalReplies() {
+  const qalveroAiFile = path.join(apiDir, 'qalvero-ai.ts');
+  if (!(await exists(qalveroAiFile))) return;
+
+  const original = await readFile(qalveroAiFile, 'utf8');
+  let updated = original;
+
+  const importLine = "import { getEgyptianDailyLocalReply } from '../src/server/_egyptian_daily_replies';";
+  if (!updated.includes('getEgyptianDailyLocalReply')) {
+    updated = updated.replace(
+      "import { checkApiRateLimit, logApiError, logUsageEvent, estimateTokens } from './_observability';",
+      "import { checkApiRateLimit, logApiError, logUsageEvent, estimateTokens } from './_observability';\n" + importLine
+    );
+  }
+
+  if (!updated.includes('QLO_EGYPTIAN_LOCAL_REPLIES')) {
+    updated = updated.replace(
+      /function localOptimizedReply\(args: \{ message: string; language: string; qloModel: QloModel; plan: UserPlan \}\) \{\n/,
+      [
+        'function localOptimizedReply(args: { message: string; language: string; qloModel: QloModel; plan: UserPlan }) {',
+        "  if (process.env.QLO_EGYPTIAN_LOCAL_REPLIES !== 'false') {",
+        '    const egyptianLocal = getEgyptianDailyLocalReply({',
+        '      message: args.message,',
+        '      language: args.language,',
+        '      qloModel: args.qloModel,',
+        '      plan: args.plan,',
+        '      seed: `${args.qloModel}:${args.plan}:${args.message.length}`',
+        '    });',
+        '',
+        '    if (egyptianLocal.matched && !egyptianLocal.shouldUseAi && egyptianLocal.confidence >= 0.68) {',
+        '      return egyptianLocal.reply;',
+        '    }',
+        '  }',
+        ''
+      ].join('\n')
+    );
+  }
+
+  if (updated !== original) {
+    await writeFile(qalveroAiFile, updated);
+  }
+}
+
 await mkdir(serverDir, { recursive: true });
 
 for (const helper of helpers) {
@@ -25,6 +85,9 @@ for (const helper of helpers) {
     await copyFile(source, target);
   }
 }
+
+await repairEgyptianLocalReplyEngine();
+await connectEgyptianLocalReplies();
 
 const runningOnVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
 
@@ -53,6 +116,8 @@ if (runningOnVercel) {
   }
 
   console.log('Vercel API helper modules moved out of /api for this build.');
+  console.log('Egyptian local daily replies connected before AI fallback.');
 } else {
   console.log('Server helper copies prepared for local build.');
+  console.log('Egyptian local daily replies connected before AI fallback.');
 }
