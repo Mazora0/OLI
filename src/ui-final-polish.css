@@ -1,0 +1,176 @@
+/* Final safe UI polish: darker theme, stable selects, sane chat composer growth.
+   No runtime DOM hacks. No API changes. Because apparently CSS can also choose violence. */
+
+:root {
+  --accent-1: #f97316;
+  --accent-2: #e11d74;
+  --accent-glow: rgba(249, 115, 22, .20);
+  --bg: #02030a;
+  --surface: rgba(255,255,255,.035);
+  --surface-strong: rgba(255,255,255,.065);
+  --border: rgba(255,255,255,.085);
+  --text: #f8fafc;
+  --muted: #8b97aa;
+  --muted-strong: #c4cfdd;
+}
+
+body {
+  background: #02030a;
+  overflow-x: hidden;
+}
+
+.bubble {
+  background:
+    radial-gradient(circle at 10% -6%, rgba(249, 115, 22, .12), transparent 25%),
+    radial-gradient(circle at 92% 10%, rgba(225, 29, 116, .10), transparent 29%),
+    radial-gradient(circle at 48% 112%, rgba(99, 102, 241, .08), transparent 34%),
+    #02030a !important;
+}
+
+.glass, .card, .panel, .auth-card, .surface,
+.row-card, .composer, .qlo-composer, .qlo-ai-message,
+.qlo-smart-suggestions, .qlo-model-current, .qlo-model-option {
+  background: rgba(12, 10, 22, .72) !important;
+  border-color: rgba(255,255,255,.085) !important;
+  box-shadow: 0 18px 48px rgba(0,0,0,.30) !important;
+}
+
+.app-header,
+.drawer-surface {
+  background: rgba(5, 6, 14, .88) !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+.btn-primary,
+.qlo-send-btn,
+.qlo-user-message,
+.avatar-ring,
+.grad,
+.qlo-source-index {
+  filter: saturate(.92) brightness(.94);
+}
+
+/* Stable select styling. Stops mobile/browser dropdowns from visually smearing over cards. */
+select,
+.field,
+.chip,
+select.field,
+select.chip,
+.qlo-select-wrap select {
+  color: var(--text) !important;
+  background-color: rgba(20, 17, 31, .92) !important;
+  border-color: rgba(255,255,255,.11) !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+select:focus,
+.field:focus,
+.chip:focus,
+.qlo-select-wrap select:focus {
+  border-color: color-mix(in srgb, var(--accent-1) 45%, white) !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, .12) !important;
+}
+
+select option {
+  background: #11101a !important;
+  color: #f8fafc !important;
+}
+
+/* Keep message bubbles readable and stop overlap/glitches. */
+.qlo-message,
+.qlo-user-message,
+.qlo-ai-message,
+.message-bubble {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  isolation: isolate;
+  contain: paint;
+}
+
+.qlo-message {
+  max-width: min(88%, 720px);
+}
+
+@media (max-width: 520px) {
+  .qlo-message { max-width: 92%; }
+}
+
+/* Chat input grows upward inside the composer only. It does not stretch the whole chat page. */
+.qlo-composer,
+.composer {
+  width: min(calc(100% - 1rem), 920px);
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.qlo-chat-scroll {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  scroll-padding-bottom: 12rem;
+}
+
+.qlo-input,
+.qlo-composer textarea,
+.composer textarea {
+  min-height: 44px !important;
+  max-height: 156px !important;
+  overflow-y: auto !important;
+  resize: none !important;
+  line-height: 1.55 !important;
+  font-size: 16px !important;
+}
+
+/* Suggestions: less crowding, no visual collision. */
+.qlo-smart-suggestions {
+  max-width: min(100%, 920px);
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.qlo-suggestions-scroll {
+  scrollbar-width: none;
+  gap: .5rem;
+}
+
+.qlo-suggestions-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.qlo-suggestion-chip,
+.qlo-template-chip {
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
+  min-height: 38px;
+}
+
+.qlo-empty-state [class*="grid"] {
+  gap: .6rem !important;
+}
+
+@media (max-width: 520px) {
+  .qlo-empty-state [class*="grid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .qlo-template-chip,
+  .qlo-empty-state button {
+    min-height: 42px;
+    line-height: 1.25;
+    white-space: normal;
+  }
+}
+
+/* Reduce heavy blur on weaker mobile browsers. */
+@media (max-width: 720px) {
+  .glass, .card, .panel, .auth-card, .surface,
+  .row-card, .composer, .qlo-composer, .app-header, .drawer-surface {
+    backdrop-filter: blur(12px) !important;
+  }
+}
