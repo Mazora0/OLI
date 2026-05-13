@@ -1,0 +1,242 @@
+body:has(.qlo-legal-page) {
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--accent-1) 18%, transparent), transparent 34rem),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--accent-2, var(--accent-1)) 15%, transparent), transparent 34rem),
+    var(--bg, #050509) !important;
+}
+
+.qlo-legal-page {
+  max-width: 1120px !important;
+  padding-inline: 1rem !important;
+  padding-bottom: 3rem !important;
+}
+
+.qlo-legal-hero {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid color-mix(in srgb, var(--accent-1) 22%, rgba(255,255,255,.10)) !important;
+  border-radius: 2.3rem !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-1) 10%, rgba(255,255,255,.06)), rgba(255,255,255,.035)),
+    rgba(0,0,0,.22) !important;
+  padding: clamp(1.4rem, 4vw, 2.3rem) !important;
+  box-shadow: 0 28px 90px rgba(0,0,0,.28) !important;
+}
+
+.qlo-legal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-1) 30%, rgba(255,255,255,.10));
+  background: color-mix(in srgb, var(--accent-1) 12%, rgba(255,255,255,.06));
+  padding: .55rem .9rem;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent-1) 75%, #fff);
+}
+
+.qlo-legal-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: 1rem;
+  color: rgba(255,255,255,.72);
+  font-size: .96rem;
+}
+
+.qlo-legal-hero h1 {
+  margin-top: 1rem;
+  max-width: 840px;
+  font-size: clamp(2.5rem, 7vw, 5.4rem);
+  line-height: .92;
+  letter-spacing: -.06em;
+}
+
+.qlo-legal-subtitle {
+  margin-top: 1rem;
+  max-width: 760px;
+  color: rgba(255,255,255,.62);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.qlo-legal-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .85rem;
+  margin-top: 1.6rem;
+}
+
+.qlo-legal-summary > div {
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  border-radius: 1.3rem;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.05);
+  padding: .95rem 1rem;
+  color: rgba(255,255,255,.82);
+}
+
+.qlo-legal-check {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-1), color-mix(in srgb, var(--accent-1) 58%, #90a3ff));
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.qlo-legal-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.4rem;
+  border-radius: 1.7rem;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.05);
+  padding: 1rem 1.15rem;
+}
+
+.qlo-legal-contact > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+
+.qlo-legal-contact p {
+  margin-top: .2rem;
+  color: rgba(255,255,255,.58);
+  font-size: .94rem;
+}
+
+.qlo-legal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.6rem;
+}
+
+.qlo-legal-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 1.8rem;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.03)),
+    rgba(7,9,18,.78);
+  padding: 1.25rem;
+  box-shadow: 0 20px 70px rgba(0,0,0,.22);
+  transition: transform .18s ease, border-color .18s ease;
+}
+
+.qlo-legal-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent-1) 35%, rgba(255,255,255,.12));
+}
+
+.qlo-legal-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--accent-1) 14%, rgba(255,255,255,.06));
+  color: var(--accent-1);
+}
+
+.qlo-legal-card h2 {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.qlo-legal-card p {
+  margin-top: .5rem;
+  color: rgba(255,255,255,.64);
+  line-height: 1.8;
+  font-size: .96rem;
+}
+
+.qlo-legal-bottom {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .8rem;
+  justify-content: center;
+  margin-top: 1.6rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.42);
+  backdrop-filter: blur(18px);
+  padding: .9rem;
+}
+
+.qlo-legal-bottom .btn,
+.qlo-legal-contact .btn {
+  min-height: 46px;
+  border-radius: 999px;
+}
+
+.qlo-legal-bottom .btn-primary,
+.qlo-legal-contact .btn-primary {
+  background: linear-gradient(135deg, var(--accent-1), color-mix(in srgb, var(--accent-1) 58%, #8da1ff));
+  border: 0;
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--accent-1) 26%, transparent);
+}
+
+html:not(.dark) .qlo-legal-card,
+html[data-theme='light'] .qlo-legal-card,
+html:not(.dark) .qlo-legal-contact,
+html[data-theme='light'] .qlo-legal-contact,
+html:not(.dark) .qlo-legal-hero,
+html[data-theme='light'] .qlo-legal-hero {
+  background: color-mix(in srgb, var(--accent-1) 5%, #fff) !important;
+  color: #111827 !important;
+}
+
+html:not(.dark) .qlo-legal-card p,
+html[data-theme='light'] .qlo-legal-card p,
+html:not(.dark) .qlo-legal-subtitle,
+html[data-theme='light'] .qlo-legal-subtitle,
+html:not(.dark) .qlo-legal-contact p,
+html[data-theme='light'] .qlo-legal-contact p {
+  color: rgba(17,24,39,.62) !important;
+}
+
+@media (max-width: 860px) {
+  .qlo-legal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .qlo-legal-page {
+    padding-inline: .95rem !important;
+  }
+
+  .qlo-legal-hero {
+    border-radius: 1.8rem !important;
+  }
+
+  .qlo-legal-contact {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .qlo-legal-card {
+    border-radius: 1.45rem;
+  }
+}
