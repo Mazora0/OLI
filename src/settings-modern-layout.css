@@ -1,0 +1,292 @@
+.qlo-settings-page {
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--accent-1) 14%, transparent), transparent 30rem),
+    var(--bg, #050509) !important;
+}
+
+.qlo-settings-page main,
+.qlo-settings-page section {
+  max-width: 520px !important;
+}
+
+.qlo-settings-page section {
+  padding-inline: 1.05rem !important;
+}
+
+.qlo-settings-page .panel:first-child {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-top: .55rem !important;
+  padding-bottom: 1.1rem !important;
+}
+
+.qlo-settings-page .panel:first-child .avatar-ring {
+  position: relative !important;
+  width: 92px !important;
+  height: 92px !important;
+  margin-inline: auto !important;
+  border: 2px solid rgba(255,255,255,.84) !important;
+  box-shadow:
+    0 14px 42px rgba(0,0,0,.42),
+    0 0 0 4px color-mix(in srgb, var(--accent-1) 24%, transparent) !important;
+}
+
+.qlo-settings-page .panel:first-child .text-3xl {
+  margin-top: .9rem !important;
+  font-size: 1.65rem !important;
+  line-height: 1.1 !important;
+  letter-spacing: -.02em !important;
+}
+
+.qlo-settings-page .panel:first-child .text-sm.text-slate-400 {
+  margin-top: 1.1rem !important;
+  font-size: 1.05rem !important;
+  color: rgba(255,255,255,.62) !important;
+}
+
+.qlo-settings-page .panel:first-child .inline-flex {
+  display: none !important;
+}
+
+.qlo-settings-page .strong-muted,
+.qlo-settings-page .mt-8.text-lg.font-black {
+  margin-top: 2.05rem !important;
+  margin-bottom: .72rem !important;
+  padding-inline: .45rem !important;
+  color: rgba(255,255,255,.70) !important;
+  font-size: 1.02rem !important;
+  font-weight: 550 !important;
+  text-align: start !important;
+}
+
+.qlo-settings-page .space-y-3,
+.qlo-settings-page .mt-3.space-y-3 {
+  display: block !important;
+  overflow: hidden !important;
+  border-radius: 1.55rem !important;
+  background: transparent !important;
+}
+
+.qlo-settings-page .setting-row,
+.qlo-settings-page .row-card {
+  min-height: 74px !important;
+  margin: 0 !important;
+  padding: 1rem 1.05rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: color-mix(in srgb, var(--accent-1) 8%, #3f3f3f) !important;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,.50) !important;
+  color: #fff !important;
+}
+
+.qlo-settings-page .space-y-3 > .setting-row:first-child,
+.qlo-settings-page .space-y-3 > .row-card:first-child {
+  border-top-left-radius: 1.55rem !important;
+  border-top-right-radius: 1.55rem !important;
+}
+
+.qlo-settings-page .space-y-3 > .setting-row:last-child,
+.qlo-settings-page .space-y-3 > .row-card:last-child {
+  border-bottom-left-radius: 1.55rem !important;
+  border-bottom-right-radius: 1.55rem !important;
+  box-shadow: none !important;
+}
+
+.qlo-settings-page .setting-row > div:first-child,
+.qlo-settings-page .row-card > div:first-child {
+  flex-direction: row-reverse !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  gap: .9rem !important;
+}
+
+html[dir='rtl'] .qlo-settings-page .setting-row > div:first-child,
+html[dir='rtl'] .qlo-settings-page .row-card > div:first-child {
+  flex-direction: row !important;
+}
+
+.qlo-settings-page .setting-row .grid.h-11,
+.qlo-settings-page .row-card .grid.h-11 {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 1rem !important;
+  background: transparent !important;
+  color: var(--accent-1) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-1) 28%, transparent) !important;
+}
+
+.qlo-settings-page .setting-row .meta,
+.qlo-settings-page .row-card .meta {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  text-align: end !important;
+}
+
+html[dir='rtl'] .qlo-settings-page .setting-row .meta,
+html[dir='rtl'] .qlo-settings-page .row-card .meta {
+  text-align: start !important;
+}
+
+.qlo-settings-page .setting-row .title,
+.qlo-settings-page .row-card .title {
+  color: #fff !important;
+  font-size: 1.12rem !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+}
+
+.qlo-settings-page .setting-row .desc,
+.qlo-settings-page .row-card .desc,
+.qlo-settings-page .soft-text,
+.qlo-settings-page .text-slate-400 {
+  margin-top: .2rem !important;
+  color: rgba(255,255,255,.56) !important;
+  font-size: .92rem !important;
+  line-height: 1.25 !important;
+}
+
+.qlo-settings-page .qlo-fixed-country-badge {
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255,255,255,.62) !important;
+  font-size: .98rem !important;
+  font-weight: 600 !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  max-width: 170px !important;
+}
+
+.qlo-settings-page .btn,
+.qlo-settings-page .btn-primary,
+.qlo-settings-page .btn-soft {
+  min-height: 42px !important;
+  border-radius: 1.1rem !important;
+  border: 0 !important;
+  background: rgba(255,255,255,.10) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.qlo-settings-page .panel:not(:first-child) {
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 1.55rem !important;
+  background: color-mix(in srgb, var(--accent-1) 8%, #3f3f3f) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+.qlo-settings-page .field,
+.qlo-settings-page input,
+.qlo-settings-page textarea,
+.qlo-settings-page select {
+  border-color: rgba(255,255,255,.08) !important;
+  background: rgba(0,0,0,.18) !important;
+  color: #fff !important;
+}
+
+.qlo-settings-page .qlo-avatar-edit {
+  position: absolute !important;
+  left: -.18rem !important;
+  bottom: -.18rem !important;
+  display: grid !important;
+  width: 38px !important;
+  height: 38px !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  border: 2px solid #000 !important;
+  background: color-mix(in srgb, var(--accent-1) 18%, #2f2f2f) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.38) !important;
+  z-index: 5 !important;
+}
+
+html[dir='rtl'] .qlo-settings-page .qlo-avatar-edit {
+  left: auto !important;
+  right: -.18rem !important;
+}
+
+.qlo-settings-page .panel:has(.grid.grid-cols-3) {
+  display: none !important;
+}
+
+body.qlo-avatar-picker-open.qlo-settings-page .panel:has(.grid.grid-cols-3),
+.qlo-settings-page.qlo-avatar-picker-open .panel:has(.grid.grid-cols-3) {
+  display: block !important;
+  animation: qloSettingsPickerIn .18s ease both !important;
+}
+
+.qlo-settings-page .panel:has(.grid.grid-cols-3) button {
+  border-radius: 1.25rem !important;
+  background: rgba(255,255,255,.08) !important;
+}
+
+@keyframes qloSettingsPickerIn {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+html:not(.dark) .qlo-settings-page,
+html[data-theme='light'] .qlo-settings-page {
+  background: #f4f4f5 !important;
+}
+
+html:not(.dark) .qlo-settings-page .setting-row,
+html:not(.dark) .qlo-settings-page .row-card,
+html:not(.dark) .qlo-settings-page .panel:not(:first-child),
+html[data-theme='light'] .qlo-settings-page .setting-row,
+html[data-theme='light'] .qlo-settings-page .row-card,
+html[data-theme='light'] .qlo-settings-page .panel:not(:first-child) {
+  background: color-mix(in srgb, var(--accent-1) 6%, #fff) !important;
+  color: #111827 !important;
+  box-shadow: inset 0 -1px 0 rgba(17,24,39,.08) !important;
+}
+
+html:not(.dark) .qlo-settings-page .title,
+html:not(.dark) .qlo-settings-page .text-3xl,
+html[data-theme='light'] .qlo-settings-page .title,
+html[data-theme='light'] .qlo-settings-page .text-3xl {
+  color: #111827 !important;
+}
+
+html:not(.dark) .qlo-settings-page .desc,
+html:not(.dark) .qlo-settings-page .soft-text,
+html:not(.dark) .qlo-settings-page .text-slate-400,
+html:not(.dark) .qlo-settings-page .qlo-fixed-country-badge,
+html[data-theme='light'] .qlo-settings-page .desc,
+html[data-theme='light'] .qlo-settings-page .soft-text,
+html[data-theme='light'] .qlo-settings-page .text-slate-400,
+html[data-theme='light'] .qlo-settings-page .qlo-fixed-country-badge {
+  color: rgba(17,24,39,.56) !important;
+}
+
+html:not(.dark) .qlo-settings-page .grid.h-11,
+html[data-theme='light'] .qlo-settings-page .grid.h-11 {
+  color: var(--accent-1) !important;
+}
+
+html:not(.dark) .qlo-settings-page .field,
+html:not(.dark) .qlo-settings-page input,
+html:not(.dark) .qlo-settings-page textarea,
+html:not(.dark) .qlo-settings-page select,
+html[data-theme='light'] .qlo-settings-page .field,
+html[data-theme='light'] .qlo-settings-page input,
+html[data-theme='light'] .qlo-settings-page textarea,
+html[data-theme='light'] .qlo-settings-page select {
+  background: rgba(17,24,39,.045) !important;
+  color: #111827 !important;
+}
+
+@media (max-width: 640px) {
+  .qlo-settings-page section {
+    padding-inline: 1.05rem !important;
+  }
+
+  .qlo-settings-page .setting-row,
+  .qlo-settings-page .row-card {
+    min-height: 72px !important;
+    padding: .95rem 1rem !important;
+  }
+}
