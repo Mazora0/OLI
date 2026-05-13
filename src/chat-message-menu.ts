@@ -33,21 +33,24 @@ function getPreferredVoice(text: string) {
   if (!voices.length) return null;
 
   const isArabic = /[\u0600-\u06FF]/.test(text);
-  if (!isArabic) {
-    return voices.find((voice) => voice.lang.toLowerCase().startsWith('en-us'))
-      || voices.find((voice) => voice.lang.toLowerCase().startsWith('en'))
-      || null;
-  }
-
   const normalized = voices.map((voice) => ({
     voice,
     lang: voice.lang.toLowerCase(),
     name: voice.name.toLowerCase()
   }));
 
+  if (!isArabic) {
+    return normalized.find((item) => item.lang.startsWith('en-us'))?.voice
+      || normalized.find((item) => item.lang.startsWith('en'))?.voice
+      || null;
+  }
+
+  /* Arabic only. No English fallback pretending to understand Arabic. */
   return normalized.find((item) => item.lang === 'ar-eg')?.voice
     || normalized.find((item) => item.lang.startsWith('ar-eg'))?.voice
     || normalized.find((item) => item.name.includes('egypt') || item.name.includes('egyptian') || item.name.includes('مصر'))?.voice
+    || normalized.find((item) => item.lang.startsWith('ar-sa'))?.voice
+    || normalized.find((item) => item.lang.startsWith('ar-ae'))?.voice
     || normalized.find((item) => item.lang.startsWith('ar'))?.voice
     || null;
 }
@@ -56,10 +59,19 @@ function speakNow(text: string) {
   const utterance = new SpeechSynthesisUtterance(text.slice(0, 3600));
   const isArabic = /[\u0600-\u06FF]/.test(text);
   const voice = getPreferredVoice(text);
+
   utterance.lang = isArabic ? 'ar-EG' : 'en-US';
-  if (voice) utterance.voice = voice;
-  utterance.rate = isArabic ? 0.96 : 1;
+
+  if (voice) {
+    utterance.voice = voice;
+  } else if (isArabic) {
+    /* If device has no Arabic voices, don't humiliate the app with English TTS. */
+    return;
+  }
+
+  utterance.rate = isArabic ? 0.94 : 1;
   utterance.pitch = 1;
+  window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }
 
@@ -69,6 +81,7 @@ function speakText(text: string) {
     copyText(speechText);
     return;
   }
+
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
     return;
@@ -86,10 +99,11 @@ function speakText(text: string) {
   };
 
   window.speechSynthesis.addEventListener('voiceschanged', speakAfterVoicesLoad);
+
   window.setTimeout(() => {
     window.speechSynthesis.removeEventListener('voiceschanged', speakAfterVoicesLoad);
     if (!window.speechSynthesis.speaking) speakNow(speechText);
-  }, 500);
+  }, 700);
 }
 
 async function shareText(text: string) {
@@ -101,7 +115,7 @@ async function shareText(text: string) {
       await copyText(clean);
     }
   } catch {
-    // Share cancelled. Fine, the universe continues its pointless spin.
+    // cancelled
   }
 }
 
