@@ -2,15 +2,22 @@
   background:
     radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--accent-1) 14%, transparent), transparent 30rem),
     var(--bg, #050509) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .qlo-settings-page main,
 .qlo-settings-page section {
-  max-width: 520px !important;
+  width: 100% !important;
+  max-width: min(100%, 760px) !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
 }
 
 .qlo-settings-page section {
-  padding-inline: 1.05rem !important;
+  padding-inline: clamp(.85rem, 3vw, 1.25rem) !important;
 }
 
 .qlo-settings-page .panel:first-child {
@@ -63,13 +70,18 @@
 .qlo-settings-page .space-y-3,
 .qlo-settings-page .mt-3.space-y-3 {
   display: block !important;
-  overflow: hidden !important;
+  overflow: clip !important;
   border-radius: 1.55rem !important;
   background: transparent !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .qlo-settings-page .setting-row,
 .qlo-settings-page .row-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   min-height: 74px !important;
   margin: 0 !important;
   padding: 1rem 1.05rem !important;
@@ -78,6 +90,8 @@
   background: color-mix(in srgb, var(--accent-1) 8%, #3f3f3f) !important;
   box-shadow: inset 0 -1px 0 rgba(0,0,0,.50) !important;
   color: #fff !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .qlo-settings-page .space-y-3 > .setting-row:first-child,
@@ -155,7 +169,7 @@ html[dir='rtl'] .qlo-settings-page .row-card .meta {
   font-weight: 600 !important;
   padding: 0 !important;
   min-height: auto !important;
-  max-width: 170px !important;
+  max-width: min(42vw, 170px) !important;
 }
 
 .qlo-settings-page .btn,
@@ -170,18 +184,23 @@ html[dir='rtl'] .qlo-settings-page .row-card .meta {
 }
 
 .qlo-settings-page .panel:not(:first-child) {
-  overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: clip !important;
   border: 0 !important;
   border-radius: 1.55rem !important;
   background: color-mix(in srgb, var(--accent-1) 8%, #3f3f3f) !important;
   box-shadow: none !important;
   color: #fff !important;
+  box-sizing: border-box !important;
 }
 
 .qlo-settings-page .field,
 .qlo-settings-page input,
 .qlo-settings-page textarea,
 .qlo-settings-page select {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
   border-color: rgba(255,255,255,.08) !important;
   background: rgba(0,0,0,.18) !important;
   color: #fff !important;
@@ -280,13 +299,23 @@ html[data-theme='light'] .qlo-settings-page select {
 }
 
 @media (max-width: 640px) {
+  .qlo-settings-page main,
   .qlo-settings-page section {
-    padding-inline: 1.05rem !important;
+    max-width: 100% !important;
+  }
+
+  .qlo-settings-page section {
+    padding-inline: .85rem !important;
   }
 
   .qlo-settings-page .setting-row,
   .qlo-settings-page .row-card {
     min-height: 72px !important;
-    padding: .95rem 1rem !important;
+    padding: .95rem .9rem !important;
+  }
+
+  .qlo-settings-page .setting-row > div:first-child,
+  .qlo-settings-page .row-card > div:first-child {
+    gap: .7rem !important;
   }
 }

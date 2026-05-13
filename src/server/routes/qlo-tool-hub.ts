@@ -1,10 +1,10 @@
-import { callQloMcpTool, qloMcpTools, qloMcpResources, qloMcpPrompts } from '../_mcp';
+import { callQloMcpTool, qloMcpTools, qloMcpResources, qloMcpPrompts, type McpTool } from '../../../api/_mcp';
 
 function setHeaders(res: any) {
   res.setHeader('Cache-Control', 'no-store');
 }
 
-function publicTool(t: any) {
+function publicTool(t: McpTool) {
   return {
     name: t.name,
     title: t.title || t.name,

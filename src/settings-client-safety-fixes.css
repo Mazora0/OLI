@@ -30,10 +30,14 @@
 
 .qlo-accent-dot-picker {
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: flex-end !important;
   gap: .7rem !important;
   padding: .2rem 0 !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
 html[dir='rtl'] .qlo-accent-dot-picker {
@@ -42,6 +46,7 @@ html[dir='rtl'] .qlo-accent-dot-picker {
 
 .qlo-accent-dot {
   position: relative !important;
+  flex: 0 0 auto !important;
   width: 26px !important;
   height: 26px !important;
   border-radius: 999px !important;
@@ -79,4 +84,14 @@ html[dir='rtl'] .qlo-accent-dot-picker {
   color: #fff !important;
   font-size: .72rem !important;
   font-weight: 900 !important;
+}
+
+@media (max-width: 640px) {
+  .qlo-accent-dot-picker {
+    gap: .55rem !important;
+  }
+
+  .qlo-fixed-country-badge {
+    max-width: min(42vw, 170px);
+  }
 }

@@ -14,7 +14,39 @@
   --muted-strong: #c4cfdd;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body { background: #02030a; overflow-x: hidden; }
+
+.bubble,
+.bubble > .mx-auto,
+.panel,
+.row-card,
+.setting-row,
+.qlo-action-card {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.panel,
+.row-card,
+.setting-row,
+.qlo-action-card {
+  border-color: rgba(255,255,255,.10);
+  border-radius: 1.75rem;
+}
 
 .qlo-composer,
 .composer {
@@ -22,6 +54,9 @@ body { background: #02030a; overflow-x: hidden; }
   margin-inline: auto;
   overflow: visible;
   border-radius: 1.9rem !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: color-mix(in srgb, var(--accent-1) 5%, rgba(9,12,24,.92)) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.32) !important;
 }
 
 .qlo-composer textarea,
@@ -51,6 +86,8 @@ body { background: #02030a; overflow-x: hidden; }
   flex-wrap: wrap !important;
   gap: .55rem !important;
   padding: .75rem .85rem .2rem !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .qlo-inline-attachment,
@@ -69,7 +106,8 @@ body { background: #02030a; overflow-x: hidden; }
   overflow: hidden !important;
 }
 
-.qlo-inline-attachment * {
+.qlo-inline-attachment *,
+.attachment-tag * {
   min-width: 0 !important;
   overflow-wrap: anywhere !important;
 }
@@ -95,4 +133,47 @@ body { background: #02030a; overflow-x: hidden; }
 .qlo-attachment-remove:hover {
   background: rgba(255,255,255,.18) !important;
   transform: translateY(-50%) scale(1.06) !important;
+}
+
+.qlo-voice-btn {
+  position: relative !important;
+  isolation: isolate !important;
+}
+
+.qlo-voice-btn::after {
+  content: '';
+  position: absolute;
+  inset: -.28rem;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.qlo-voice-listening {
+  color: #fff !important;
+  background: color-mix(in srgb, var(--accent-1) 26%, rgba(255,255,255,.10)) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-1) 45%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent-1) 38%, transparent) !important;
+}
+
+.qlo-voice-listening::after {
+  border-color: color-mix(in srgb, var(--accent-1) 58%, transparent);
+  animation: qloVoicePulse 1.2s ease-out infinite;
+  opacity: 1;
+}
+
+.qlo-voice-error,
+.qlo-voice-denied,
+.qlo-voice-unsupported {
+  color: #fecaca !important;
+  background: rgba(239,68,68,.16) !important;
+  box-shadow: 0 0 0 1px rgba(239,68,68,.28) !important;
+}
+
+@keyframes qloVoicePulse {
+  0% { transform: scale(.86); opacity: .9; }
+  70% { transform: scale(1.28); opacity: 0; }
+  100% { transform: scale(1.28); opacity: 0; }
 }

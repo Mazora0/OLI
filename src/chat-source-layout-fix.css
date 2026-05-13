@@ -7,14 +7,68 @@
   overflow-x: hidden !important;
 }
 
+.qlo-chat-shell {
+  width: 100% !important;
+  max-width: min(100%, 56rem) !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  --qlo-composer-safe-space: clamp(12rem, 30vh, 18rem);
+}
+
+.qlo-chat-scroll {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding-inline: clamp(.35rem, 2vw, 1rem) !important;
+  padding-bottom: calc(var(--qlo-composer-safe-space) + env(safe-area-inset-bottom)) !important;
+  scroll-padding-bottom: calc(var(--qlo-composer-safe-space) + env(safe-area-inset-bottom)) !important;
+}
+
+.message-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  align-items: flex-start !important;
+  box-sizing: border-box !important;
+}
+
+.qlo-message-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  width: fit-content !important;
+  max-width: min(92vw, 760px) !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.qlo-message-stack-user {
+  align-items: flex-end !important;
+}
+
+.qlo-message-stack-assistant {
+  align-items: flex-start !important;
+}
+
 .qlo-ai-message,
 .qlo-user-message,
 .message-bubble {
   position: relative !important;
   max-width: min(92vw, 760px) !important;
   overflow-wrap: anywhere !important;
-  word-break: normal !important;
+  word-break: break-word !important;
   white-space: pre-wrap !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.qlo-message .markdownish,
+.message-bubble .markdownish {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .qlo-ai-message a,
@@ -23,46 +77,97 @@
   word-break: break-word !important;
 }
 
-/* Only affect source cards inside actual message bubbles, never settings/cards globally. */
-.qlo-ai-message [class*="source"],
-.qlo-ai-message [class*="citation"],
-.qlo-ai-message [class*="reference"],
-.message-bubble [class*="source"],
-.message-bubble [class*="citation"],
-.message-bubble [class*="reference"] {
+.qlo-sources,
+.qlo-source-list,
+.qlo-source-link,
+.qlo-citation-card {
   max-width: 100% !important;
   min-width: 0 !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  word-break: break-word !important;
 }
 
-.qlo-ai-message [class*="source"] img,
-.qlo-ai-message [class*="citation"] img,
-.qlo-ai-message [class*="reference"] img,
-.message-bubble [class*="source"] img,
-.message-bubble [class*="citation"] img,
-.message-bubble [class*="reference"] img {
+.qlo-ai-message .qlo-sources,
+.message-bubble .qlo-sources {
+  display: block !important;
+  width: 100% !important;
+  margin-top: .85rem !important;
+  padding-top: .8rem !important;
+  border-top: 1px solid rgba(255,255,255,.09) !important;
+  position: static !important;
+  transform: none !important;
+  z-index: auto !important;
+}
+
+.qlo-ai-message .qlo-source-list,
+.message-bubble .qlo-source-list {
+  display: grid !important;
+  width: 100% !important;
+  gap: .55rem !important;
+}
+
+.qlo-ai-message .qlo-source-link,
+.message-bubble .qlo-source-link,
+.qlo-citation-card {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: .6rem !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  padding: .58rem .65rem !important;
+  border-radius: 1rem !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(255,255,255,.045) !important;
+  color: inherit !important;
+  text-decoration: none !important;
+  position: static !important;
+  transform: none !important;
+}
+
+.qlo-source-index {
+  display: grid !important;
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--accent-1) 24%, rgba(255,255,255,.08)) !important;
+  color: #fff !important;
+  font-size: .7rem !important;
+  font-weight: 900 !important;
+  position: static !important;
+  flex: 0 0 auto !important;
+}
+
+.qlo-sources img,
+.qlo-source-list img,
+.qlo-source-link img,
+.qlo-citation-card img {
   max-width: 100% !important;
   height: auto !important;
   object-fit: cover !important;
 }
 
-.qlo-ai-message [class*="source"] *,
-.qlo-ai-message [class*="citation"] *,
-.qlo-ai-message [class*="reference"] *,
-.message-bubble [class*="source"] *,
-.message-bubble [class*="citation"] *,
-.message-bubble [class*="reference"] * {
+.qlo-sources *,
+.qlo-source-list *,
+.qlo-source-link *,
+.qlo-citation-card * {
   min-width: 0 !important;
   overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 .qlo-message-actions,
+.qlo-message-actions-row,
 .qlo-extra-message-actions {
   position: static !important;
-  z-index: 2 !important;
+  z-index: 3 !important;
   transform: none !important;
   pointer-events: auto !important;
+  max-width: 100% !important;
+  flex-wrap: wrap !important;
+  box-sizing: border-box !important;
 }
 
 .qlo-extra-message-actions {
@@ -82,20 +187,77 @@
   overflow: visible !important;
 }
 
+.qlo-composer-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  z-index: 70 !important;
+  padding-inline: clamp(.35rem, 2vw, 1rem) !important;
+  padding-bottom: max(.65rem, env(safe-area-inset-bottom)) !important;
+  box-sizing: border-box !important;
+  background: linear-gradient(to top, var(--bg, #02030a) 78%, rgba(2,3,10,0)) !important;
+}
+
+.qlo-composer-wrap .qlo-smart-suggestions,
+.qlo-composer-wrap .qlo-suggestions-scroll {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  box-sizing: border-box !important;
+}
+
+.qlo-composer-wrap .qlo-composer {
+  max-width: min(100%, 920px) !important;
+  box-sizing: border-box !important;
+}
+
+.qlo-composer > .flex {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.qlo-composer .qlo-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.qlo-composer .qlo-icon-btn,
+.qlo-composer .qlo-send-btn {
+  flex: 0 0 44px !important;
+}
+
 @media (max-width: 640px) {
+  .qlo-chat-shell {
+    min-height: calc(100dvh - 5.5rem) !important;
+    --qlo-composer-safe-space: clamp(13rem, 34vh, 20rem);
+  }
+
   .qlo-ai-message,
   .qlo-user-message,
   .message-bubble {
     max-width: calc(100vw - 34px) !important;
   }
 
-  .qlo-ai-message [class*="source"],
-  .qlo-ai-message [class*="citation"],
-  .qlo-ai-message [class*="reference"],
-  .message-bubble [class*="source"],
-  .message-bubble [class*="citation"],
-  .message-bubble [class*="reference"] {
+  .qlo-message-stack {
+    max-width: calc(100vw - 34px) !important;
+  }
+
+  .qlo-sources,
+  .qlo-source-list,
+  .qlo-source-link,
+  .qlo-citation-card {
     width: 100% !important;
     border-radius: 1rem !important;
+  }
+
+  .qlo-composer {
+    width: 100% !important;
+    border-radius: 1.55rem !important;
+  }
+
+  .qlo-composer .qlo-icon-btn,
+  .qlo-composer .qlo-send-btn {
+    flex-basis: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
   }
 }

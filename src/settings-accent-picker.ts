@@ -30,16 +30,29 @@ function createDot(value: AccentId, selected: boolean, select: HTMLSelectElement
   button.addEventListener('click', () => {
     select.value = value;
     select.dispatchEvent(new Event('change', { bubbles: true }));
-    window.setTimeout(enhanceAccentPicker, 0);
+    updateAccentDots(select);
   });
   return button;
+}
+
+function updateAccentDots(select: HTMLSelectElement) {
+  const holder = select.nextElementSibling;
+  if (!(holder instanceof HTMLElement) || !holder.classList.contains('qlo-accent-dot-picker')) return;
+  holder.querySelectorAll<HTMLButtonElement>('.qlo-accent-dot').forEach((button) => {
+    const selected = button.getAttribute('aria-label') === accentLabels[select.value as AccentId];
+    button.classList.toggle('is-selected', selected);
+    button.innerHTML = selected ? '<span aria-hidden="true">✓</span>' : '<span aria-hidden="true"></span>';
+  });
 }
 
 function enhanceAccentPicker() {
   const selects = Array.from(document.querySelectorAll<HTMLSelectElement>('select'));
   for (const select of selects) {
     if (!isAccentSelect(select)) continue;
-    if (select.dataset.qloAccentEnhanced === '1') continue;
+    if (select.dataset.qloAccentEnhanced === '1') {
+      updateAccentDots(select);
+      continue;
+    }
 
     const holder = document.createElement('div');
     holder.className = 'qlo-accent-dot-picker';
@@ -48,6 +61,7 @@ function enhanceAccentPicker() {
 
     select.dataset.qloAccentEnhanced = '1';
     select.classList.add('qlo-hidden-accent-select');
+    select.addEventListener('change', () => updateAccentDots(select));
     select.insertAdjacentElement('afterend', holder);
   }
 }

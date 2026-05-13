@@ -8,7 +8,7 @@ import {
   qloMcpResources,
   qloMcpTools,
   requireMcpAuth
-} from '../_mcp';
+} from '../../../api/_mcp';
 
 function safePublicServer(server: any) {
   return { id: server.id, name: server.name, url: server.url.replace(/\/[^/]*$/, '/…'), enabled: server.enabled, safe: isSafeRemoteMcpUrl(server.url) };

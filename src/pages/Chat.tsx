@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Bot, Brain, BookOpenCheck, Code2, Copy, Download, ExternalLink, FileCode2, FileText, Globe2, GraduationCap, Lightbulb, Loader2, PackageCheck, Paperclip, Play, Printer, Search, Send, Sparkles, SlidersHorizontal, ThumbsDown, ThumbsUp, X, Zap } from 'lucide-react';
+import { Bot, Brain, BookOpenCheck, Code2, Copy, Download, ExternalLink, FileCode2, FileText, Globe2, GraduationCap, Lightbulb, Loader2, Mic, MicOff, PackageCheck, Paperclip, Play, Printer, Search, Send, Sparkles, SlidersHorizontal, ThumbsDown, ThumbsUp, X, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { labels } from '../lib/i18n';
 import { getAccessToken } from '../lib/supabase';
@@ -11,6 +11,7 @@ type ChatThread = { id: string; title: string; messages: Msg[]; createdAt: strin
 type AgentOutput = { rawText: string; html: string; jsx?: string; plan?: string; creditMode?: string; packageHint?: string; type?: 'agent' | 'research'; fileBase?: string } | null;
 type AutoRoute = 'agent' | 'research' | 'study' | 'pro' | 'chat';
 type WorkingState = 'idle' | 'web' | 'agent' | 'research' | 'study' | 'pro' | 'chat' | 'reading';
+type VoiceInputState = 'idle' | 'listening' | 'error' | 'denied' | 'unsupported';
 
 type ModelOption = { id: string; name: string; badge: '1.2' | '1.3'; desc: { en: string; ar: string }; tone: 'flash' | 'study' | 'pro' | 'agent' };
 
@@ -210,10 +211,22 @@ function downloadFile(name: string, content: string, type: string) {
 }
 
 
-function shouldUseWebGrounding(model: string, mode: string, text: string) {
-  const q = `${model} ${mode} ${text}`.toLowerCase();
-  if (model === 'QLO 1.2 Study') return true;
-  return /(source|sources|cite|citation|research|study|paper|scientific|science|latest|today|current|medical|health|law|legal|statistics|data|evidence|مصدر|مصادر|دليل|بحث|دراسة|علمي|علمية|اخر|أحدث|النهارده|طبي|صحة|قانون|إحصائيات|بيانات)/i.test(q);
+function shouldUseWebSearch(args: { message: string; mode: string; model: string; userPressedWeb: boolean; hasFiles: boolean; isAgent: boolean }) {
+  const q = `${args.message} ${args.mode} ${args.model}`.toLowerCase();
+  if (args.userPressedWeb) return true;
+
+  // Search only for changing/current facts, explicit source requests, or named external lookups.
+  const asksCurrentInfo = /(today|current|latest|recent|news|price|prices|schedule|results?|status|available|update|release|weather|score|match|fixture|موعد|مواعيد|نتائج|نتيجة|حالة|متاح|تحديث|سعر|أسعار|اخبار|أخبار|أحدث|احدث|آخر|اخر|اليوم|النهارده|دلوقتي|الآن|الان)/i.test(q);
+  const asksSources = /(sources?|citations?|references?|links?|official\s+site|search|look\s*up|مصادر|مراجع|توثيق|اقتباسات|رابط|روابط|الموقع\s+الرسمي|ابحث|بحث|دور|هات\s+رابط)/i.test(q);
+  const asksExternalSpecific = /(https?:\/\/|www\.|\.com\b|\.org\b|\.net\b|\.gov\b|\.edu\b|article|paper|pdf|product|company|law|sports?|weather|news|prices?|releases?|schedules?|website|site|vercel|openai|github|npm|مقال|ورقة|بحث\s+علمي|pdf|منتج|شركة|قانون|رياضة|طقس|موقع|إصدار|اصدار)/i.test(q);
+  const academicWithSources = /(academic|university|research\s+paper|بحث\s*(جامعي|أكاديمي|اكاديمي)|ورقة\s*بحثية)/i.test(q) && asksSources;
+
+  // Agent/build/local-file work should stay local unless the user clearly asks for web facts or sources.
+  const buildRequest = /(موقع|لعبة|apk|أداة|اداة|مشروع|صفحة|dashboard|داشبورد|website|game|tool|project|landing\s*page|app|تطبيق)/i.test(q);
+  const localWork = /(explain|اشرح|code|coding|debug|translate|summari[sz]e|brainstorm|write|rewrite|كود|برمجة|ايرور|خطأ|ترجم|لخص|اكتب|صياغة|فكرة|أفكار)/i.test(q);
+  if ((args.isAgent || buildRequest || args.hasFiles || localWork) && !asksCurrentInfo && !asksSources && !academicWithSources) return false;
+
+  return asksCurrentInfo || asksSources || asksExternalSpecific || academicWithSources;
 }
 
 function hasCodeAttachment(files: ChatAttachment[]) {
@@ -240,6 +253,22 @@ function wantsAcademicResearch(text: string) {
 }
 
 function isArabicText(value = '') { return /[\u0600-\u06FF]/.test(value); }
+
+function getSpeechRecognitionCtor() {
+  if (typeof window === 'undefined') return null;
+  const w = window as typeof window & {
+    SpeechRecognition?: new () => any;
+    webkitSpeechRecognition?: new () => any;
+  };
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
+
+function mergeDictationText(base: string, dictated: string) {
+  const cleanBase = String(base || '').trimEnd();
+  const cleanDictated = String(dictated || '').replace(/\s+/g, ' ').trim();
+  if (!cleanDictated) return base;
+  return cleanBase ? `${cleanBase} ${cleanDictated}` : cleanDictated;
+}
 
 function escapeHtml(value = '') {
   return String(value)
@@ -830,7 +859,14 @@ const copyByLang = {
     autoResearch: 'تم تحويل الطلب تلقائيًا لوضع بحث جامعي بالمصادر وتنسيق PDF.',
     researchReady: 'تم تجهيز البحث بصيغة احترافية قابلة للطباعة PDF.',
     researchPreview: 'بحث PDF جاهز للطباعة',
-    suggestionsTitle: 'اقتراحات جاهزة'
+    suggestionsTitle: 'اقتراحات جاهزة',
+    voiceStart: 'بدأ الاستماع. اتكلم دلوقتي.',
+    voiceStop: 'تم إيقاف الاستماع.',
+    voiceUnsupported: 'المتصفح ده لا يدعم تحويل الصوت لنص. جرّب Chrome على Android أو Desktop.',
+    voiceDenied: 'تم رفض إذن الميكروفون. افتح صلاحية الميكروفون من إعدادات المتصفح وجرب تاني.',
+    voiceError: 'تعذر تشغيل الإدخال الصوتي. جرّب مرة أخرى.',
+    voiceListening: 'إيقاف الإدخال الصوتي',
+    voiceIdle: 'إدخال صوتي'
   },
   en: {
     intro: 'Qalvero AI',
@@ -887,7 +923,14 @@ const copyByLang = {
     autoResearch: 'Auto-routed to academic research mode with sources and PDF-ready formatting.',
     researchReady: 'Research is ready in a professional PDF-printable layout.',
     researchPreview: 'PDF-ready research',
-    suggestionsTitle: 'Ready suggestions'
+    suggestionsTitle: 'Ready suggestions',
+    voiceStart: 'Listening started. Speak now.',
+    voiceStop: 'Listening stopped.',
+    voiceUnsupported: 'This browser does not support speech-to-text. Try Chrome on Android or desktop.',
+    voiceDenied: 'Microphone permission was denied. Enable mic access in browser settings and try again.',
+    voiceError: 'Voice input could not start. Try again.',
+    voiceListening: 'Stop voice input',
+    voiceIdle: 'Voice input'
   }
 } as const;
 
@@ -916,8 +959,10 @@ export default function Chat() {
   const [memoryNotice, setMemoryNotice] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceInputState>('idle');
   const [ratings, setRatings] = useState<{ [key: string]: 'like' | 'dislike' | undefined }>({});
   const [agentOutput, setAgentOutput] = useState<AgentOutput>(null);
   const [apkBuild, setApkBuild] = useState<{ loading: boolean; message: string; logUrl?: string; outputUri?: string }>({ loading: false, message: '' });
@@ -925,6 +970,10 @@ export default function Chat() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const animatingRef = useRef(0);
   const sendingRef = useRef(false);
+  const recognitionRef = useRef<any>(null);
+  const voiceListeningRef = useRef(false);
+  const voiceBaseInputRef = useRef('');
+  const voiceFinalTranscriptRef = useRef('');
 
   const active = useMemo(() => threads.find((x) => x.id === activeId), [threads, activeId]);
   const msgs = active?.messages || [];
@@ -960,6 +1009,122 @@ export default function Chat() {
       return next;
     });
   }, [plan]);
+
+  useEffect(() => {
+    return () => {
+      voiceListeningRef.current = false;
+      try { recognitionRef.current?.stop?.(); } catch { /* ignore */ }
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  function syncTextareaLayout() {
+    window.requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  function stopVoiceInput(showNotice = true) {
+    voiceListeningRef.current = false;
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    try { recognition?.stop?.(); } catch { /* ignore */ }
+    setVoiceState('idle');
+    if (showNotice) {
+      setMemoryNotice(copy.voiceStop);
+      window.setTimeout(() => setMemoryNotice((current) => current === copy.voiceStop ? '' : current), 1600);
+    }
+  }
+
+  function recognitionLocale() {
+    return lang === 'ar' || isArabicText(input) ? 'ar-EG' : 'en-US';
+  }
+
+  function startVoiceInput() {
+    if (voiceListeningRef.current || recognitionRef.current) {
+      stopVoiceInput();
+      return;
+    }
+
+    const Recognition = getSpeechRecognitionCtor();
+    if (!Recognition) {
+      setVoiceState('unsupported');
+      setError(copy.voiceUnsupported);
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognitionRef.current = recognition;
+    voiceListeningRef.current = true;
+    voiceBaseInputRef.current = input;
+    voiceFinalTranscriptRef.current = '';
+
+    recognition.lang = recognitionLocale();
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setError('');
+      setVoiceState('listening');
+      setMemoryNotice(copy.voiceStart);
+      textareaRef.current?.focus();
+    };
+
+    recognition.onresult = (event: any) => {
+      let finalText = voiceFinalTranscriptRef.current;
+      let interimText = '';
+
+      for (let i = event.resultIndex || 0; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        const transcript = String(result?.[0]?.transcript || '').trim();
+        if (!transcript) continue;
+        if (result.isFinal) finalText = `${finalText} ${transcript}`.trim();
+        else interimText = `${interimText} ${transcript}`.trim();
+      }
+
+      voiceFinalTranscriptRef.current = finalText;
+      const dictated = `${finalText} ${interimText}`.replace(/\s+/g, ' ').trim();
+      setInput(mergeDictationText(voiceBaseInputRef.current, dictated));
+      setVoiceState('listening');
+      syncTextareaLayout();
+    };
+
+    recognition.onerror = (event: any) => {
+      const code = String(event?.error || '');
+      voiceListeningRef.current = false;
+      recognitionRef.current = null;
+      try { recognition.stop?.(); } catch { /* ignore */ }
+
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        setVoiceState('denied');
+        setError(copy.voiceDenied);
+        return;
+      }
+
+      setVoiceState('error');
+      setError(code === 'no-speech' ? (lang === 'ar' ? 'لم يتم التقاط كلام واضح. جرّب تاني.' : 'No clear speech was detected. Try again.') : copy.voiceError);
+    };
+
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      if (voiceListeningRef.current) {
+        voiceListeningRef.current = false;
+        setVoiceState('idle');
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      voiceListeningRef.current = false;
+      recognitionRef.current = null;
+      setVoiceState('error');
+      setError(copy.voiceError);
+    }
+  }
 
   async function syncThreadToCloud(thread: ChatThread) {
     if (!profile?.email) return;
@@ -1006,6 +1171,7 @@ export default function Chat() {
   }
 
   function newChat() {
+    stopVoiceInput(false);
     setActiveId('new'); setInput(''); setError(''); setMemoryNotice(''); setTyping(false); setWorkingState('idle'); setAttachments([]); setAgentOutput(null); setApkBuild({ loading: false, message: '' }); sendingRef.current = false;
   }
 
@@ -1107,7 +1273,11 @@ export default function Chat() {
     await processFiles(files);
   }
 
-  function removeAttachment(idx: number) { setAttachments((prev) => prev.filter((_, i) => i !== idx)); }
+  function removeAttachment(idx: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+    const fileInput = document.getElementById('qv-file-input') as HTMLInputElement | null;
+    if (fileInput) fileInput.value = '';
+  }
 
 
   function chooseModel(nextModel: string) {
@@ -1162,7 +1332,7 @@ export default function Chat() {
     return { finalText: text + attachmentsText, visibleText: text + visibleFiles };
   }
 
-  async function sendChat(text: string, routeModel = model, routeMode = mode) {
+  async function sendChat(text: string, routeModel = model, routeMode = mode, userPressedWeb = false) {
     const { finalText, visibleText } = buildPayload(text);
     const afterUser = [...msgs, { role: 'user', content: visibleText } as Msg];
     const threadId = upsertThread(afterUser, visibleText);
@@ -1171,7 +1341,15 @@ export default function Chat() {
     try {
       let sources: WebSource[] = [];
       let groundedText = finalText;
-      if (shouldUseWebGrounding(routeModel, routeMode, text)) {
+      const searchIntent = shouldUseWebSearch({
+        message: text,
+        mode: routeMode,
+        model: routeModel,
+        userPressedWeb,
+        hasFiles: attachments.length > 0,
+        isAgent: routeModel === 'QLO 1.3 Agent'
+      });
+      if (searchIntent) {
         setWorkingState('web');
         sources = await getGroundingSources(text || finalText.slice(0, 220), lang);
         groundedText = `${finalText}${sourceContext(sources, lang)}`;
@@ -1181,7 +1359,7 @@ export default function Chat() {
       const r = await fetch('/api/qalvero-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ message: groundedText, history: msgs, model: routeModel, mode: routeMode, language: lang, grounded: sources.length > 0, userAi: loadLocalUserAi(false) })
+        body: JSON.stringify({ message: groundedText, history: msgs, model: routeModel, mode: routeMode, language: lang, useWebSearch: searchIntent, searchIntent, grounded: sources.length > 0, userAi: loadLocalUserAi(false) })
       });
       const data = await r.json();
       const rawReply = data.reply || data.error || copy.empty;
@@ -1220,7 +1398,7 @@ ${finalText}${sourceContext(sources, lang)}`;
       const r = await fetch('/api/qalvero-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ message: researchInstruction, history: msgs, model: 'QLO 1.2 Study', mode: 'Study coach', language: lang, grounded: sources.length > 0, output: 'academic_research', userAi: loadLocalUserAi(false) })
+        body: JSON.stringify({ message: researchInstruction, history: msgs, model: 'QLO 1.2 Study', mode: 'Study coach', language: lang, useWebSearch: true, searchIntent: true, grounded: sources.length > 0, output: 'academic_research', userAi: loadLocalUserAi(false) })
       });
       const data = await r.json();
       const rawReply = data.reply || data.error || copy.empty;
@@ -1248,18 +1426,28 @@ ${reply}`.slice(0, 9000), sources);
     const threadId = upsertThread(afterUser, visibleText);
     setLoading(true); setWorkingState('agent'); setAgentOutput(null); setApkBuild({ loading: false, message: '' });
     try {
+      let sources: WebSource[] = [];
+      let agentPrompt = finalText;
+      const searchIntent = shouldUseWebSearch({ message: text, mode: 'Agent', model: 'QLO 1.3 Agent', userPressedWeb: webSearchEnabled, hasFiles: attachments.length > 0, isAgent: true });
+      if (searchIntent) {
+        setWorkingState('web');
+        sources = await getGroundingSources(text || finalText.slice(0, 220), lang);
+        agentPrompt = `${finalText}${sourceContext(sources, lang)}`;
+        setWorkingState('agent');
+        setMemoryNotice(sources.length ? copy.webGrounded : copy.webEmpty);
+      }
       const token = await getAccessToken();
       const r = await fetch('/api/qlo-agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ prompt: finalText, files: attachments, language: lang, creditMode: 'smart', output: 'jsx', userAi: loadLocalUserAi(true) })
+        body: JSON.stringify({ prompt: agentPrompt, files: attachments, language: lang, creditMode: 'smart', output: 'jsx', useWebSearch: searchIntent, searchIntent, grounded: sources.length > 0, userAi: loadLocalUserAi(true) })
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || copy.backendDown);
       incrementAgentUsage(plan);
       setAgentOutput({ rawText: data.rawText || '', html: data.html || '', jsx: data.jsx || '', plan: data.plan, creditMode: data.creditMode, packageHint: data.packageHint });
-      await animateReply(threadId, afterUser, `${copy.agentReady}\n\n${data.rawText || ''}`.slice(0, 9000));
-      void queueTrainingExample({ prompt: visibleText, response: data.rawText || '', route: 'agent', model: 'QLO 1.3 Agent', task: data.template || 'project_build' });
+      await animateReply(threadId, afterUser, `${copy.agentReady}\n\n${data.rawText || ''}`.slice(0, 9000), sources);
+      void queueTrainingExample({ prompt: visibleText, response: data.rawText || '', route: 'agent', model: 'QLO 1.3 Agent', task: data.template || 'project_build', sources });
     } catch (err: any) {
       const msg = err?.message || copy.backendDown;
       setError(msg);
@@ -1272,9 +1460,11 @@ ${reply}`.slice(0, 9000), sources);
     // Hard single-flight guard: React state is async, so a fast double-tap/Enter could start two requests.
     // This ref blocks duplicate sends before loading state updates.
     if ((!text && attachments.length === 0) || loading || sendingRef.current) return;
+    if (voiceListeningRef.current || recognitionRef.current) stopVoiceInput(false);
     sendingRef.current = true;
     setInput(''); setError(''); setMemoryNotice('');
     const safeText = text || (attachments.length ? (lang === 'ar' ? 'حلل الملفات المرفقة ونفّذ المطلوب المناسب.' : 'Analyze the attached files and do the suitable task.') : '');
+    const userPressedWeb = webSearchEnabled;
     try {
       const route = decideAutoRoute(safeText, attachments, model, mode);
       if (route === 'research') {
@@ -1294,18 +1484,19 @@ ${reply}`.slice(0, 9000), sources);
         setModel('QLO 1.2 Study');
         setMode('Study coach');
         setMemoryNotice(copy.autoStudy);
-        await sendChat(safeText || (lang === 'ar' ? 'اشرح الملفات المرفقة بشكل مبسط.' : 'Explain the attached files simply.'), 'QLO 1.2 Study', 'Study coach');
+        await sendChat(safeText || (lang === 'ar' ? 'اشرح الملفات المرفقة بشكل مبسط.' : 'Explain the attached files simply.'), 'QLO 1.2 Study', 'Study coach', userPressedWeb);
         return;
       }
       if (route === 'pro') {
         const routeModel = loggedIn ? 'QLO 1.3 Pro' : 'QLO 1.2 Flash';
         setModel(routeModel);
         if (loggedIn) setMemoryNotice(copy.autoPro);
-        await sendChat(safeText || (lang === 'ar' ? 'حلل الملفات المرفقة.' : 'Analyze the attached files.'), routeModel, mode);
+        await sendChat(safeText || (lang === 'ar' ? 'حلل الملفات المرفقة.' : 'Analyze the attached files.'), routeModel, mode, userPressedWeb);
         return;
       }
-      await sendChat(safeText || (lang === 'ar' ? 'حلل الملفات المرفقة.' : 'Analyze the attached files.'));
+      await sendChat(safeText || (lang === 'ar' ? 'حلل الملفات المرفقة.' : 'Analyze the attached files.'), model, mode, userPressedWeb);
     } finally {
+      setWebSearchEnabled(false);
       sendingRef.current = false;
     }
   }
@@ -1378,12 +1569,13 @@ ${reply}`.slice(0, 9000), sources);
           <div className="space-y-3 pb-6 pt-3 md:pt-6">
             {msgs.map((m, i) => { const key = `${activeId}-${i}`; const rating = ratings[key]; return (
               <div key={i} className={`message-row flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div>
-                  <div dir="auto" className={`qlo-message ${m.role === 'user' ? 'qlo-user-message' : 'qlo-ai-message'} qlo-message-animate`}><div className="markdownish whitespace-pre-wrap text-[15px] leading-7">{m.content || (typing && i === msgs.length - 1 ? <span className="typing-cursor">▋</span> : '')}</div></div>
-                  {m.role === 'assistant' && m.sources?.length ? (
-                    <div className="qlo-sources mt-2">
+                <div className={`qlo-message-stack ${m.role === 'user' ? 'qlo-message-stack-user' : 'qlo-message-stack-assistant'}`}>
+                  <div dir="auto" className={`qlo-message ${m.role === 'user' ? 'qlo-user-message' : 'qlo-ai-message'} qlo-message-animate`}>
+                    <div className="markdownish whitespace-pre-wrap text-[15px] leading-7">{m.content || (typing && i === msgs.length - 1 ? <span className="typing-cursor">▋</span> : '')}</div>
+                    {m.role === 'assistant' && m.sources?.length ? (
+                    <div className="qlo-sources">
                       <div className="mb-2 flex items-center gap-2 text-xs font-black soft-text"><Globe2 size={13} /> {copy.sourcesTitle}</div>
-                      <div className="grid gap-2">
+                      <div className="qlo-source-list grid gap-2">
                         {m.sources.map((src, idx) => (
                           <a key={`${src.url}-${idx}`} href={src.url} target="_blank" rel="noreferrer" className="qlo-source-link">
                             <span className="qlo-source-index">{idx + 1}</span>
@@ -1394,7 +1586,8 @@ ${reply}`.slice(0, 9000), sources);
                       </div>
                     </div>
                   ) : null}
-                  <div className={`mt-1 flex gap-1 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  </div>
+                  <div className={`qlo-message-actions-row mt-1 flex gap-1 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <button onClick={() => handleCopy(i)} className="message-btn" aria-label={lang === 'ar' ? 'نسخ' : 'Copy'}><Copy size={14} /></button>
                     {m.role === 'assistant' && <><button onClick={() => handleRate(i, 'like')} className={`message-btn ${rating === 'like' ? 'active' : ''}`} aria-label={lang === 'ar' ? 'إعجاب' : 'Like'}><ThumbsUp size={14} /></button><button onClick={() => handleRate(i, 'dislike')} className={`message-btn ${rating === 'dislike' ? 'active' : ''}`} aria-label={lang === 'ar' ? 'عدم الإعجاب' : 'Dislike'}><ThumbsDown size={14} /></button></>}
                   </div>
@@ -1438,9 +1631,8 @@ ${reply}`.slice(0, 9000), sources);
         )}
       </div>
 
-      <div className="sticky bottom-0 safe-bottom pt-3">
+      <div className="qlo-composer-wrap sticky bottom-0 safe-bottom pt-3">
         {(error || memoryNotice) && <div className="mb-3 rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm soft-text">{memoryNotice || error}</div>}
-        {attachments.length > 0 && <div className="mb-3 flex flex-wrap gap-2 px-1">{attachments.map((att, idx) => <div key={idx} className="attachment-tag"><span className="max-w-[10rem] truncate">{att.name}</span><span className="text-[10px] opacity-60">{Math.ceil(att.size / 1024)}KB</span><button onClick={() => removeAttachment(idx)} className="text-slate-400 hover:text-red-500"><X size={14} /></button></div>)}</div>}
 
         <div className="qlo-smart-suggestions mb-2">
           <div className="qlo-suggestions-title"><Sparkles size={13} /> {copy.suggestionsTitle}</div>
@@ -1459,10 +1651,23 @@ ${reply}`.slice(0, 9000), sources);
           onDragLeave={() => setDragActive(false)}
           onDrop={async (e) => { e.preventDefault(); setDragActive(false); await processFiles(Array.from(e.dataTransfer.files || []) as File[]); }}
         >
+          {attachments.length > 0 && (
+            <div className="qlo-attachment-dock">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="attachment-tag">
+                  <span className="max-w-[10rem] truncate">{att.name}</span>
+                  <span className="text-[10px] opacity-60">{Math.ceil(att.size / 1024)}KB</span>
+                  <button onClick={() => removeAttachment(idx)} className="qlo-attachment-remove" aria-label={lang === 'ar' ? 'إزالة الملف' : 'Remove file'}><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2">
-            <textarea ref={textareaRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={selectedIsAgent ? (lang === 'ar' ? 'اطلب من Agent يبني مشروع أو ملف JSX...' : 'Ask Agent to build a project or JSX file...') : t.placeholder} className="qlo-input" />
+            <textarea ref={textareaRef} rows={1} dir="auto" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={selectedIsAgent ? (lang === 'ar' ? 'اطلب من Agent يبني مشروع أو ملف JSX...' : 'Ask Agent to build a project or JSX file...') : t.placeholder} className="qlo-input" />
             <input id="qv-file-input" type="file" multiple accept={ACCEPTED_FILE_TYPES} className="hidden" onChange={onFileChange} />
+            <button type="button" onClick={startVoiceInput} className={`qlo-icon-btn qlo-voice-btn qlo-voice-${voiceState}`} aria-pressed={voiceState === 'listening'} aria-label={voiceState === 'listening' ? copy.voiceListening : copy.voiceIdle} title={voiceState === 'listening' ? copy.voiceListening : copy.voiceIdle}>{voiceState === 'listening' ? <MicOff size={20} /> : <Mic size={20} />}</button>
             <button onClick={() => document.getElementById('qv-file-input')?.click()} className="qlo-icon-btn" aria-label={lang === 'ar' ? 'إرفاق ملف' : 'Attach file'}><Paperclip size={20} /></button>
+            <button onClick={() => setWebSearchEnabled((v) => !v)} className={`qlo-icon-btn ${webSearchEnabled ? 'active' : ''}`} aria-pressed={webSearchEnabled} aria-label={lang === 'ar' ? 'بحث ويب' : 'Web search'}><Search size={20} /></button>
             <button onClick={() => setShowSettings((v) => !v)} className="qlo-icon-btn" aria-label={copy.settings}><SlidersHorizontal size={20} /></button>
             <button onClick={send} disabled={loading || (!input.trim() && attachments.length === 0)} className="qlo-send-btn" aria-label={t.send}><Send size={20} /></button>
           </div>

@@ -7,9 +7,19 @@ body:has(.qlo-dashboard-screen) {
 }
 
 .qlo-dashboard-screen {
-  max-width: 520px !important;
-  padding-inline: 1.05rem !important;
+  width: 100% !important;
+  max-width: min(100%, 980px) !important;
+  padding-inline: clamp(.75rem, 3vw, 1.25rem) !important;
   padding-bottom: 2rem !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.qlo-dashboard-screen *,
+.qlo-dashboard-screen *::before,
+.qlo-dashboard-screen *::after {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .qlo-dashboard-screen > .mb-5 {
@@ -19,6 +29,7 @@ body:has(.qlo-dashboard-screen) {
   background: transparent !important;
   box-shadow: none !important;
   padding: .55rem 0 1rem !important;
+  overflow: visible !important;
 }
 
 .qlo-dashboard-screen > .mb-5 > .flex {
@@ -93,6 +104,7 @@ body:has(.qlo-dashboard-screen) {
   background: rgba(255,255,255,.08) !important;
   color: rgba(255,255,255,.94) !important;
   box-shadow: none !important;
+  min-width: 0 !important;
 }
 
 .qlo-dashboard-screen > .mb-5 .btn-primary {
@@ -101,12 +113,50 @@ body:has(.qlo-dashboard-screen) {
   box-shadow: 0 18px 48px color-mix(in srgb, var(--accent-1) 28%, transparent) !important;
 }
 
+.qlo-dashboard-nav {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: .55rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.qlo-dashboard-nav a {
+  display: inline-flex !important;
+  min-width: 0 !important;
+  min-height: 42px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .4rem !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(255,255,255,.065) !important;
+  color: rgba(255,255,255,.86) !important;
+  padding: .5rem .55rem !important;
+  font-size: .78rem !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.qlo-dashboard-nav a[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--accent-1) 42%, rgba(255,255,255,.12)) !important;
+  background: color-mix(in srgb, var(--accent-1) 18%, rgba(255,255,255,.08)) !important;
+  color: #fff !important;
+}
+
 .qlo-dashboard-screen > .grid {
-  display: block !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 260px) !important;
+  align-items: start !important;
+  gap: 1rem !important;
 }
 
 .qlo-dashboard-screen > .grid > div {
-  margin-bottom: 1rem !important;
+  min-width: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .qlo-dashboard-screen > .grid > div:first-child,
@@ -115,7 +165,7 @@ body:has(.qlo-dashboard-screen) {
   border-radius: 1.8rem !important;
   background: color-mix(in srgb, var(--accent-1) 8%, rgba(255,255,255,.055)) !important;
   box-shadow: 0 24px 70px rgba(0,0,0,.25) !important;
-  overflow: hidden !important;
+  overflow: clip !important;
 }
 
 .qlo-dashboard-screen h2 {
@@ -129,6 +179,11 @@ body:has(.qlo-dashboard-screen) {
   border: 1px solid rgba(255,255,255,.10) !important;
   background: rgba(0,0,0,.22) !important;
   color: #fff !important;
+  max-width: 100% !important;
+}
+
+.qlo-dashboard-screen .relative.min-w-\[210px\] {
+  min-width: min(100%, 210px) !important;
 }
 
 .qlo-dashboard-screen .grid.gap-2 > .group {
@@ -225,10 +280,27 @@ html[data-theme='light'] .qlo-settings-page .panel:not(:first-child) {
 @media (max-width: 640px) {
   .qlo-dashboard-screen {
     max-width: 100% !important;
+    padding-inline: .85rem !important;
+  }
+
+  .qlo-dashboard-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .qlo-dashboard-screen > .grid {
+    display: block !important;
+  }
+
+  .qlo-dashboard-screen > .grid > div {
+    margin-bottom: 1rem !important;
   }
 
   .qlo-dashboard-screen > .grid > div:first-child,
   .qlo-dashboard-screen > .grid > div:last-child {
     border-radius: 1.45rem !important;
+  }
+
+  .qlo-dashboard-screen > .grid > div:last-child .grid.gap-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }

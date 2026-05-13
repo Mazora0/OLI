@@ -3,7 +3,7 @@ import { Bell, Brain, Database, Download, Globe2, LogIn, LogOut, Mail, Palette, 
 import { Link } from 'react-router-dom';
 import { useApp, type AccentColor, type ThemeMode } from '../context/AppContext';
 import { hasSupabase, supabase, getAccessToken } from '../lib/supabase';
-import { countries, currencyOf, type Country } from '../lib/pricing';
+import { currencyOf } from '../lib/pricing';
 import { labels, type Lang } from '../lib/i18n';
 import { avatarOptions, getAvatar } from '../lib/avatars';
 
@@ -83,7 +83,7 @@ function Row({ icon, title, desc, action }: { icon: ReactNode; title: string; de
 }
 
 export default function SettingsPage() {
-  const { lang, setLang, theme, setTheme, accent, setAccent, country, setCountry, profile, refreshProfile, signOut } = useApp();
+  const { lang, setLang, theme, setTheme, accent, setAccent, country, profile, refreshProfile, signOut } = useApp();
   const t = labels[lang];
   const copy = lang === 'ar' ? pageCopy.ar : pageCopy.en;
   const [memory, setMemory] = useState<Memory>({});
@@ -326,10 +326,7 @@ export default function SettingsPage() {
   async function saveProfile() {
     localStorage.setItem('qv_notifications', notifications ? 'on' : 'off');
     if (!profile?.id) return setMsg(copy.loginToChangeCountry);
-    if (hasSupabase && supabase) {
-      await supabase.from('qv_profiles').update({ country, currency: currencyOf(country) }).eq('id', profile.id);
-      await refreshProfile();
-    }
+    await refreshProfile();
     setMsg(copy.saved);
   }
 
@@ -344,7 +341,7 @@ export default function SettingsPage() {
   const accentLabel = useMemo(() => accents.find((a) => a.id === accent)?.label[lang], [accent, lang]);
 
   return (
-    <section className="mx-auto max-w-4xl pb-10">
+    <section className="qlo-settings-page mx-auto w-full max-w-4xl overflow-x-hidden pb-10">
       <div className="panel rounded-[2.2rem] p-6 text-center md:p-8">
         <div className={`mx-auto avatar-ring h-[104px] w-[104px] overflow-hidden`}><div className={`avatar-core grid h-full w-full place-items-center rounded-full bg-gradient-to-br ${profile ? avatar.gradient : 'from-slate-800 to-slate-950'} text-5xl`}>{profile ? avatar.emoji : 'Q'}</div></div>
         <div className="mt-4 text-3xl font-black">{displayName}</div>
@@ -369,7 +366,7 @@ export default function SettingsPage() {
       <div className="mt-3 space-y-3">
         <Row icon={<WalletCards size={18} />} title={copy.workspace} desc={profile?.plan || 'Guest'} action={<span className="soft-text text-sm">{copy.plan}</span>} />
         <Row icon={<Mail size={18} />} title={copy.email} desc={displayEmail} />
-        <Row icon={<Globe2 size={18} />} title={copy.billingCountry} desc={profile ? `${country} · ${currencyOf(country)}` : copy.loginToChangeCountry} action={profile ? <select className="chip max-w-[190px] py-2" value={country} onChange={(e) => setCountry(e.target.value as Country)}>{countries.map((c) => <option key={c[0]} value={c[0]}>{c[1]}</option>)}</select> : <span className="soft-text text-sm">{country}</span>} />
+        <Row icon={<Globe2 size={18} />} title={copy.billingCountry} desc={profile ? `${country} · ${currencyOf(country)}` : copy.loginToChangeCountry} action={<span className="qlo-fixed-country-badge">{country}</span>} />
         <Row icon={<Bell size={18} />} title={t.notifications} desc={copy.notificationsDesc} action={<button className={`btn ${notifications ? 'btn-primary' : 'btn-soft'} min-w-[116px]`} onClick={() => setNotifications((s) => !s)}>{notifications ? 'On' : 'Off'}</button>} />
         {profile && <button onClick={signOut} className="row-card setting-row w-full text-start"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-full bg-white/5"><LogOut size={18} /></div><div className="title">{copy.logout}</div></div><span className="soft-text">›</span></button>}
       </div>

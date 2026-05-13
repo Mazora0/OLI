@@ -2,6 +2,16 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { checkApiRateLimit, logApiError, logUsageEvent, estimateTokens } from './_observability';
 
+function qloEnv(names: string[], fallback = '') {
+  for (const name of names) {
+    const value = process.env[name];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return fallback;
+}
+
+import { getEgyptianDailyLocalReply } from '../src/server/_egyptian_daily_replies';
+
 type ChatRole = 'system' | 'user' | 'assistant';
 type ChatMessage = { role: ChatRole; content: string };
 type UserPlan = 'Free' | 'Standard' | 'Premium' | 'Max';
@@ -49,6 +59,41 @@ const SMART_CACHE_MAX_REPLY_CHARS = Math.max(500, Number(process.env.QLO_RESPONS
 const dedupe = (items: string[]) => [...new Set(items.map((v) => v.trim()).filter(Boolean))];
 const csv = (value?: string) => value ? value.split(',').map((v) => v.trim()).filter(Boolean) : [];
 const isArabicText = (value = '') => /[\u0600-\u06FF]/.test(value);
+
+function sendJson(res: any, status: number, body: Record<string, unknown>) {
+  try {
+    res.setHeader?.('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader?.('Cache-Control', 'no-store');
+  } catch {
+    // Some test/mocked response objects do not implement headers.
+  }
+  const message = String(body.reply ?? body.content ?? body.text ?? body.message ?? body.error ?? '');
+  const payload = {
+    ...body,
+    ok: typeof body.ok === 'boolean' ? body.ok : status < 400 && !body.error,
+    reply: String(body.reply ?? message),
+    content: String(body.content ?? message),
+    text: String(body.text ?? message),
+    message: String(body.message ?? message),
+    sources: Array.isArray(body.sources) ? body.sources : []
+  };
+  return res.status(status).json(payload);
+}
+
+function safeErrorMessage(err: any, fallback = 'Provider failed') {
+  return String(err?.message || err?.error || fallback).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+}
+
+async function readProviderJson(r: Response, label: string) {
+  const raw = await r.text().catch(() => '');
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const sample = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220);
+    throw new Error(`${label} returned non-JSON${sample ? `: ${sample}` : ''}`);
+  }
+}
 
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -372,23 +417,31 @@ function responseTokenBudget(messages: ChatMessage[], model: QloModel | string) 
 }
 
 async function callGemini(key: string, messages: ChatMessage[], model: string, maxOutputTokens = 1200) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const system = messages.find((m) => m.role === 'system')?.content || '';
-  const userParts = messages.filter((m) => m.role !== 'system').map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: `${system}\n\n${userParts}` }] }], generationConfig: { temperature: 0.35, topP: 0.82, maxOutputTokens } }) });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error?.message || `Gemini failed: ${r.status}`);
-  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '';
-  if (!text) throw new Error('Gemini returned an empty response');
-  return text;
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const system = messages.find((m) => m.role === 'system')?.content || '';
+    const userParts = messages.filter((m) => m.role !== 'system').map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: `${system}\n\n${userParts}` }] }], generationConfig: { temperature: 0.35, topP: 0.82, maxOutputTokens } }) });
+    const data = await readProviderJson(r, 'Gemini');
+    if (!r.ok) throw new Error(data?.error?.message || `Gemini failed: ${r.status}`);
+    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '';
+    if (!text) throw new Error('Gemini returned an empty response');
+    return text;
+  } catch (err: any) {
+    throw new Error(`Gemini provider error: ${safeErrorMessage(err)}`);
+  }
 }
 async function callOpenAICompatible(endpoint: string, key: string, model: string, messages: ChatMessage[], extraHeaders: Record<string, string> = {}, maxTokens = 1200) {
-  const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, ...extraHeaders }, body: JSON.stringify({ model, messages, temperature: 0.35, max_tokens: maxTokens }) });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error?.message || data?.message || `${endpoint} failed: ${r.status}`);
-  const text = data?.choices?.[0]?.message?.content || '';
-  if (!text) throw new Error('Provider returned an empty response');
-  return text;
+  try {
+    const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, ...extraHeaders }, body: JSON.stringify({ model, messages, temperature: 0.35, max_tokens: maxTokens }) });
+    const data = await readProviderJson(r, endpoint);
+    if (!r.ok) throw new Error(data?.error?.message || data?.message || `${endpoint} failed: ${r.status}`);
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Provider returned an empty response');
+    return text;
+  } catch (err: any) {
+    throw new Error(`OpenAI-compatible provider error: ${safeErrorMessage(err)}`);
+  }
 }
 
 const USER_AI_PROVIDERS = new Set(['gemini', 'openrouter', 'groq', 'deepseek']);
@@ -424,15 +477,19 @@ async function callUserAiProvider(config: UserAiConfig, messages: ChatMessage[],
 }
 
 async function callCloudflareWorkersAI(model: string, messages: ChatMessage[]) {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const token = process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_WORKERS_AI_TOKEN;
-  if (!accountId || !token) throw new Error('Cloudflare Workers AI is not configured');
-  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ messages: messages.map((m) => ({ role: m.role, content: m.content })) }) });
-  const data = await r.json();
-  if (!r.ok || data?.success === false) throw new Error(data?.errors?.[0]?.message || data?.error || `Cloudflare failed: ${r.status}`);
-  const text = data?.result?.response || data?.result?.text || data?.response || '';
-  if (!text) throw new Error('Cloudflare returned an empty response');
-  return text;
+  try {
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const token = process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_WORKERS_AI_TOKEN;
+    if (!accountId || !token) throw new Error('Cloudflare Workers AI is not configured');
+    const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ messages: messages.map((m) => ({ role: m.role, content: m.content })) }) });
+    const data = await readProviderJson(r, 'Cloudflare Workers AI');
+    if (!r.ok || data?.success === false) throw new Error(data?.errors?.[0]?.message || data?.error || `Cloudflare failed: ${r.status}`);
+    const text = data?.result?.response || data?.result?.text || data?.response || '';
+    if (!text) throw new Error('Cloudflare returned an empty response');
+    return text;
+  } catch (err: any) {
+    throw new Error(`Cloudflare provider error: ${safeErrorMessage(err)}`);
+  }
 }
 
 async function getAuthUser(req: any): Promise<AuthUser> {
@@ -592,9 +649,9 @@ async function runQlo(args: { qloModel: QloModel; tier: UsageTier; messages: Cha
   const groqFlashModels = envList(['GROQ_FLASH_MODELS', 'GROQ_FLASH_MODEL', 'GROQ_MODEL'], ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'gemma2-9b-it']);
   const groqProModels = envList(['GROQ_PRO_MODELS', 'GROQ_DEEPSEEK_MODEL', 'GROQ_REASON_MODEL', 'GROQ_MODEL'], ['deepseek-r1-distill-llama-70b', 'llama-3.3-70b-versatile', 'llama-3.1-70b-versatile']);
   const openrouterPro = process.env.OPENROUTER_PRO_MODEL || 'deepseek/deepseek-chat';
-  const openrouterReason = process.env.OPENROUTER_REASON_MODEL || 'deepseek/deepseek-r1';
-  const deepseekChatModel = process.env.DEEPSEEK_CHAT_MODEL || 'deepseek-chat';
-  const deepseekReasonModel = process.env.DEEPSEEK_REASON_MODEL || 'deepseek-reasoner';
+  const openrouterReason = qloEnv(['OPENROUTER_REASON_MODEL'], 'deepseek/deepseek-r1') || 'deepseek/deepseek-r1';
+  const deepseekChatModel = qloEnv(['DEEPSEEK_CHAT_MODEL'], 'deepseek-chat') || 'deepseek-chat';
+  const deepseekReasonModel = qloEnv(['DEEPSEEK_REASON_MODEL'], 'deepseek-reasoner') || 'deepseek-reasoner';
   const maxTokens = responseTokenBudget(args.messages, args.qloModel);
   const attempts: Array<{ label: string; run: () => Promise<string> }> = [];
   if (args.userAi?.enabled) attempts.push({ label: 'qlo-personal-key', run: () => callUserAiProvider(args.userAi!, args.messages, args.tier, maxTokens) });
@@ -619,20 +676,21 @@ async function runQlo(args: { qloModel: QloModel; tier: UsageTier; messages: Cha
 }
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const rate = await checkApiRateLimit(req, 'qlo-chat', Number(process.env.QLO_CHAT_RATE_LIMIT_PER_MINUTE || 45), 60);
-  if (!rate.ok) return res.status(429).json({ error: 'Too many chat requests. Wait a moment and try again.', retry_after: rate.retryAfter, limit: rate.limit });
   try {
-    const { message, history = [], model = 'QLO Auto', mode = 'Auto', language = 'en', userAi: rawUserAi } = req.body || {};
-    if (!message || typeof message !== 'string') return res.status(400).json({ error: 'Message required' });
-    if (message.length > Number(process.env.MAX_MESSAGE_CHARS || 6000)) return res.status(413).json({ error: language === 'ar' ? 'الرسالة طويلة جدًا. اختصرها شوية وجرب تاني.' : 'Message is too long. Please shorten it and try again.' });
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
+    const rate = await checkApiRateLimit(req, 'qlo-chat', Number(process.env.QLO_CHAT_RATE_LIMIT_PER_MINUTE || 45), 60);
+    if (!rate.ok) return sendJson(res, 429, { error: 'Too many chat requests. Wait a moment and try again.', retry_after: rate.retryAfter, limit: rate.limit });
+
+    const { message, history = [], model = 'QLO Auto', mode = 'Auto', language = 'en', userAi: rawUserAi, useWebSearch = false, searchIntent = false } = req.body || {};
+    if (!message || typeof message !== 'string') return sendJson(res, 400, { error: 'Message required' });
+    if (message.length > Number(process.env.MAX_MESSAGE_CHARS || 6000)) return sendJson(res, 413, { error: language === 'ar' ? 'الرسالة طويلة جدًا. اختصرها شوية وجرب تاني.' : 'Message is too long. Please shorten it and try again.' });
 
     const user = await getAuthUser(req);
     const restriction = await checkRestriction(user);
-    if (restriction) return res.status(403).json({ error: language === 'ar' ? 'الحساب متوقف مؤقتًا بسبب مخالفة واضحة لشروط الاستخدام. راجع الدعم لو شايف ده خطأ.' : 'This account is temporarily restricted due to a clear Terms violation. Contact support if you believe this is a mistake.' });
+    if (restriction) return sendJson(res, 403, { error: language === 'ar' ? 'الحساب متوقف مؤقتًا بسبب مخالفة واضحة لشروط الاستخدام. راجع الدعم لو شايف ده خطأ.' : 'This account is temporarily restricted due to a clear Terms violation. Contact support if you believe this is a mistake.' });
     let userAi: UserAiConfig | null = null;
     try { userAi = sanitizeUserAiConfig(rawUserAi, user); }
-    catch (err: any) { return res.status(403).json({ error: language === 'ar' ? err.message : err.message }); }
+    catch (err: any) { return sendJson(res, 403, { error: safeErrorMessage(err, 'Personal AI key is invalid') }); }
 
     let anonUsage: { ok: boolean; used: number; limit: number } | null = null;
 
@@ -642,7 +700,7 @@ export default async function handler(req: any, res: any) {
       const msg = language === 'ar' || isArabicText(message)
         ? 'بص، مش هقدر أساعد في طلب واضح إنه مخالف أو ممكن يسبب ضرر. أقدر أساعدك بحاجة قانونية وآمنة بدل كده.'
         : 'I can’t help with a request that appears clearly harmful or illegal. I can help with a safe, legal alternative.';
-      return res.status(400).json({ error: msg, safety: { blocked: true, category: safety.category } });
+      return sendJson(res, 400, { error: msg, safety: { blocked: true, category: safety.category } });
     }
 
     const task = detectTask(message, mode);
@@ -653,12 +711,12 @@ export default async function handler(req: any, res: any) {
     if (localReply) {
       const cleanReply = canonicalizeQloNames(localReply);
       await logUsageEvent(req, { kind: 'chat', route: 'local-reply', model: qloModel, plan: user.plan, charged: false, optimized: true, promptChars: message.length, responseChars: cleanReply.length, promptTokens: estimateTokens(message), responseTokens: estimateTokens(cleanReply), status: 'ok' });
-      return res.status(200).json({
+      return sendJson(res, 200, {
         reply: cleanReply,
         model: qloModel,
         usage: { ok: true, used: 0, limit: tierLimit(user.plan, tier), tier, optimized: true, charged: false },
         memory_updated: false,
-        qlo: { family: qloModel.startsWith('QLO 1.3') ? 'QLO 1.3' : 'QLO 1.2', task, plan: user.plan, tier, optimizer: 'local-reply' }
+        qlo: { family: qloModel.startsWith('QLO 1.3') ? 'QLO 1.3' : 'QLO 1.2', task, plan: user.plan, tier, optimizer: 'local-reply', searchIntent: Boolean(useWebSearch || searchIntent) }
       });
     }
 
@@ -666,26 +724,26 @@ export default async function handler(req: any, res: any) {
     if (cachedReply) {
       const cleanReply = canonicalizeQloNames(cachedReply);
       await logUsageEvent(req, { kind: 'chat', route: 'response-cache', model: qloModel, plan: user.plan, charged: false, cached: true, optimized: true, promptChars: message.length, responseChars: cleanReply.length, promptTokens: estimateTokens(message), responseTokens: estimateTokens(cleanReply), status: 'ok' });
-      return res.status(200).json({
+      return sendJson(res, 200, {
         reply: cleanReply,
         model: qloModel,
         usage: { ok: true, used: 0, limit: tierLimit(user.plan, tier), tier, cached: true, charged: false },
         memory_updated: false,
-        qlo: { family: qloModel.startsWith('QLO 1.3') ? 'QLO 1.3' : 'QLO 1.2', task, plan: user.plan, tier, optimizer: 'response-cache' }
+        qlo: { family: qloModel.startsWith('QLO 1.3') ? 'QLO 1.3' : 'QLO 1.2', task, plan: user.plan, tier, optimizer: 'response-cache', searchIntent: Boolean(useWebSearch || searchIntent) }
       });
     }
 
     if (user.demo && requiresLogin(qloModel)) {
-      return res.status(401).json({ error: loginRequiredMessage(language), login_required: true, tier, model: qloModel });
+      return sendJson(res, 401, { error: loginRequiredMessage(language), login_required: true, tier, model: qloModel });
     }
     if (user.demo) {
       anonUsage = await checkAnonymousLimit(req);
-      if (!anonUsage.ok) return res.status(401).json({ error: language === 'ar' ? `خلصت تجربة الضيف لدورة الـ${CREDIT_RESET_HOURS} ساعات الحالية (${anonUsage.used}/${anonUsage.limit}). سجّل حساب مجاني عشان تكمل على QLO Flash بحدود أعلى.` : `Guest limit reached for the current ${CREDIT_RESET_HOURS}-hour window (${anonUsage.used}/${anonUsage.limit}). Create a free account to continue with higher QLO Flash limits.`, used: anonUsage.used, limit: anonUsage.limit, login_required: true });
+      if (!anonUsage.ok) return sendJson(res, 401, { error: language === 'ar' ? `خلصت تجربة الضيف لدورة الـ${CREDIT_RESET_HOURS} ساعات الحالية (${anonUsage.used}/${anonUsage.limit}). سجّل حساب مجاني عشان تكمل على QLO Flash بحدود أعلى.` : `Guest limit reached for the current ${CREDIT_RESET_HOURS}-hour window (${anonUsage.used}/${anonUsage.limit}). Create a free account to continue with higher QLO Flash limits.`, used: anonUsage.used, limit: anonUsage.limit, login_required: true });
     }
     const usage = user.demo && anonUsage
       ? { ok: true, used: anonUsage.used, limit: anonUsage.limit, tier }
       : await checkAndIncrementTierUsage(user, tier);
-    if (!usage.ok) return res.status(402).json({ error: limitMessage(user.plan, tier, language, usage.used, usage.limit), used: usage.used, limit: usage.limit, tier });
+    if (!usage.ok) return sendJson(res, 402, { error: limitMessage(user.plan, tier, language, usage.used, usage.limit), used: usage.used, limit: usage.limit, tier });
 
     const system = systemPrompt({ model: qloModel, mode, language, task, memory: user.memory, plan: user.plan, userMessage: message });
     const historyWindow = tier === 'flash' ? 5 : 10;
@@ -698,9 +756,13 @@ export default async function handler(req: any, res: any) {
     await saveOptimizedReplyCache({ user, model: qloModel, task, language, message, reply: cleanReply, tier, userAi });
     await logUsageEvent(req, { kind: 'chat', route: result.route, model: qloModel, plan: user.plan, charged: true, cached: false, optimized: SMART_CHAT_OPTIMIZER_ENABLED, promptChars: message.length, responseChars: cleanReply.length, promptTokens: estimateTokens(message), responseTokens: estimateTokens(cleanReply), status: 'ok', meta: { task, tier, byok: Boolean(userAi?.enabled) } });
     const memoryUpdated = await updateTinyMemory(user, message);
-    return res.status(200).json({ reply: cleanReply, model: qloModel, usage: { ...usage, charged: true }, memory_updated: memoryUpdated, qlo: { family: qloModel.startsWith('QLO 1.3') ? 'QLO 1.3' : 'QLO 1.2', task, plan: user.plan, tier, optimizer: SMART_CHAT_OPTIMIZER_ENABLED ? 'smart' : 'off' }, debug: process.env.QLO_DEBUG === 'true' ? { route: result.route } : undefined });
+    return sendJson(res, 200, { reply: cleanReply, model: qloModel, usage: { ...usage, charged: true }, memory_updated: memoryUpdated, qlo: { family: qloModel.startsWith('QLO 1.3') ? 'QLO 1.3' : 'QLO 1.2', task, plan: user.plan, tier, optimizer: SMART_CHAT_OPTIMIZER_ENABLED ? 'smart' : 'off', searchIntent: Boolean(useWebSearch || searchIntent) }, debug: process.env.QLO_DEBUG === 'true' ? { route: result.route } : undefined });
   } catch (err: any) {
-    await logApiError(req, { scope: 'qlo-chat', code: 'chat_failed', message: err?.message || 'QLO failed to respond', severity: 'medium', sample: String(req.body?.message || '').slice(0, 500) });
-    return res.status(500).json({ error: process.env.QLO_DEBUG === 'true' ? (err.message || 'QLO failed to respond') : 'Qalvero AI connection failed. Check server AI keys and try again.' });
+    try {
+      await logApiError(req, { scope: 'qlo-chat', code: 'chat_failed', message: safeErrorMessage(err, 'QLO failed to respond'), severity: 'medium', sample: String(req.body?.message || '').slice(0, 500) });
+    } catch {
+      // Error logging must never turn a JSON API failure into an HTML/runtime response.
+    }
+    return sendJson(res, 500, { error: process.env.QLO_DEBUG === 'true' ? safeErrorMessage(err, 'QLO failed to respond') : 'Qalvero AI connection failed. Check server AI keys and try again.' });
   }
 }

@@ -8,14 +8,28 @@ function requestUrl(input: RequestInfo | URL) {
       : input.url;
 }
 
+function parseRequestUrl(input: RequestInfo | URL) {
+  const raw = requestUrl(input);
+  try {
+    return new URL(raw, window.location.origin);
+  } catch {
+    return null;
+  }
+}
+
 function isQalveroAiRequest(input: RequestInfo | URL) {
-  return requestUrl(input).includes('/api/qalvero-ai');
+  const url = parseRequestUrl(input);
+  if (url) return url.pathname === '/api/qalvero-ai' || url.pathname === '/api/qalvero-ai/';
+  return /(^|\/)api\/qalvero-ai\/?([?#]|$)/.test(requestUrl(input));
 }
 
 function normalizeAiInput(input: RequestInfo | URL): RequestInfo | URL {
-  const raw = requestUrl(input);
-  if (!raw.includes('/api/qalvero-ai/')) return input;
-  const fixed = raw.replace('/api/qalvero-ai/', '/api/qalvero-ai');
+  const url = parseRequestUrl(input);
+  if (!url || url.pathname !== '/api/qalvero-ai/') return input;
+  url.pathname = '/api/qalvero-ai';
+  const fixed = typeof input === 'string' && !/^[a-z][a-z\d+\-.]*:/i.test(input)
+    ? `${url.pathname}${url.search}${url.hash}`
+    : url.toString();
 
   if (typeof input === 'string') return fixed;
   if (input instanceof URL) return new URL(fixed);
@@ -46,7 +60,31 @@ function safeAiErrorMessage(raw: string, status: number) {
 
 window.fetch = async (input, init) => {
   const normalizedInput = isQalveroAiRequest(input) ? normalizeAiInput(input) : input;
-  const response = await originalFetch(normalizedInput, init);
+  let response: Response;
+  try {
+    response = await originalFetch(normalizedInput, init);
+  } catch (err) {
+    if (!isQalveroAiRequest(normalizedInput)) throw err;
+    const message = 'تعذر الاتصال بمسار /api/qalvero-ai. جرّب مرة أخرى أو راجع إعدادات النشر.';
+    return new Response(JSON.stringify({
+      ok: false,
+      reply: message,
+      content: message,
+      text: message,
+      message,
+      error: message,
+      sources: [],
+      safeJsonGuard: true,
+      status: 0
+    }), {
+      status: 200,
+      statusText: 'OK',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Qalvero-Safe-Json-Guard': '1'
+      }
+    });
+  }
   if (!isQalveroAiRequest(normalizedInput)) return response;
 
   const clone = response.clone();

@@ -3,7 +3,6 @@ import { CreditCard, Globe2, Home, LayoutDashboard, LogIn, LogOut, Menu, MoonSta
 import { useMemo, useState, type ReactNode } from 'react';
 import { useApp, type AccentColor, type ThemeMode } from '../context/AppContext';
 import { labels, type Lang } from '../lib/i18n';
-import { countries, type Country } from '../lib/pricing';
 import { getAvatar } from '../lib/avatars';
 
 const langs = [
@@ -41,7 +40,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { lang, setLang, theme, setTheme, accent, setAccent, country, setCountry, profile, signOut } = useApp();
+  const { lang, setLang, theme, setTheme, accent, setAccent, country, profile, signOut } = useApp();
   const t = labels[lang];
   const isAuthRoute = ['/login', '/signup', '/forgot-password'].includes(location.pathname);
   const isGuest = !profile;
@@ -93,7 +92,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="row-card setting-row"><div className="flex items-center gap-3"><Globe2 size={18} /><div className="meta"><div className="title">{t.language}</div></div></div><select className="chip max-w-[180px] py-2" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>{langs.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></div>
         <div className="row-card setting-row"><div className="flex items-center gap-3"><MoonStar size={18} /><div className="meta"><div className="title">{t.theme}</div><div className="desc">{themeText[theme][lang]}</div></div></div><select className="chip max-w-[180px] py-2" value={theme} onChange={(e) => setTheme(e.target.value as ThemeMode)}>{(['system', 'dark', 'light'] as ThemeMode[]).map((item) => <option key={item} value={item}>{themeText[item][lang]}</option>)}</select></div>
         <div className="row-card setting-row"><div className="flex items-center gap-3"><Palette size={18} /><div className="meta"><div className="title">{t.accent}</div><div className="desc">{accents.find((a) => a.id === accent)?.label[lang]}</div></div></div><select className="chip max-w-[180px] py-2" value={accent} onChange={(e) => setAccent(e.target.value as AccentColor)}>{accents.map((item) => <option key={item.id} value={item.id}>{item.label[lang]}</option>)}</select></div>
-        <div className="row-card setting-row"><div className="flex items-center gap-3"><SunMedium size={18} /><div className="meta"><div className="title">{t.country}</div><div className="desc">{profile ? (lang === 'ar' ? 'مربوطة بالحساب' : 'Linked to account') : (lang === 'ar' ? 'سجّل دخول لتغييرها' : 'Login to change')}</div></div></div>{profile ? <select className="chip max-w-[180px] py-2" value={country} onChange={(e) => setCountry(e.target.value as Country)}>{countries.map((c) => <option key={c[0]} value={c[0]}>{c[1]}</option>)}</select> : <span className="soft-text text-sm">{country}</span>}</div>
+        <div className="row-card setting-row"><div className="flex items-center gap-3"><SunMedium size={18} /><div className="meta"><div className="title">{t.country}</div><div className="desc">{profile ? (lang === 'ar' ? 'مربوطة بالحساب' : 'Linked to account') : (lang === 'ar' ? 'سجّل دخول لتغييرها' : 'Login to change')}</div></div></div>{profile ? <span className="qlo-fixed-country-badge">{country}</span> : <span className="soft-text text-sm">{country}</span>}</div>
       </div>
 
 

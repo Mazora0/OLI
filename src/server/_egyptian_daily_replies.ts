@@ -4,6 +4,7 @@ export type EgyptianLocalReplyArgs = {
   qloModel?: string;
   plan?: string;
   seed?: string;
+  messageCount?: string | number;
 };
 
 export type EgyptianLocalReplyResult = {

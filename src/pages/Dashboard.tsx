@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CreditCard, Edit3, Lock, MessageSquareText, Pin, PinOff, Plus, Search, Settings, Trash2, Zap } from 'lucide-react';
+import { CreditCard, Edit3, Home, LayoutDashboard, Lock, MessageSquareText, Pin, PinOff, Plus, Search, Settings, Trash2, Wand2, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { guestLimits, limits, publicPlanName } from '../lib/pricing';
 import { supabase } from '../lib/supabase';
@@ -12,10 +12,10 @@ type DashboardThread = StoredThread & { pinned?: boolean };
 
 const copy = {
   ar: {
-    settings: 'الإعدادات', plan: 'الخطة', guest: 'ضيف', login: 'تسجيل الدخول', upgrade: 'ترقية', newChat: 'محادثة جديدة', recentChats: 'الدردشات', noChats: 'لسه مفيش محادثات محفوظة.', noSearch: 'مفيش محادثات مطابقة.', usage: 'الاستخدام', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'الموديلات', saved: 'محفوظ', search: 'ابحث في المحادثات...', pin: 'تثبيت', unpin: 'إلغاء التثبيت', rename: 'إعادة تسمية', delete: 'حذف', renamePrompt: 'اسم المحادثة الجديد', deleteConfirm: 'حذف المحادثة دي؟', deleted: 'تم حذف المحادثة', renamed: 'تم تغيير الاسم', pinned: 'تم التثبيت', unpinned: 'تم إلغاء التثبيت'
+    home: 'الرئيسية', dashboard: 'لوحة التحكم', settings: 'الإعدادات', plan: 'الخطة', guest: 'ضيف', login: 'تسجيل الدخول', upgrade: 'ترقية', pricing: 'الأسعار', tools: 'الأدوات', newChat: 'محادثة جديدة', recentChats: 'الدردشات', noChats: 'لسه مفيش محادثات محفوظة.', noSearch: 'مفيش محادثات مطابقة.', usage: 'الاستخدام', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'الموديلات', saved: 'محفوظ', search: 'ابحث في المحادثات...', pin: 'تثبيت', unpin: 'إلغاء التثبيت', rename: 'إعادة تسمية', delete: 'حذف', renamePrompt: 'اسم المحادثة الجديد', deleteConfirm: 'حذف المحادثة دي؟', deleted: 'تم حذف المحادثة', renamed: 'تم تغيير الاسم', pinned: 'تم التثبيت', unpinned: 'تم إلغاء التثبيت'
   },
   en: {
-    settings: 'Settings', plan: 'Plan', guest: 'Guest', login: 'Login', upgrade: 'Upgrade', newChat: 'New chat', recentChats: 'Chats', noChats: 'No saved chats yet.', noSearch: 'No matching chats.', usage: 'Usage', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'Models', saved: 'Saved', search: 'Search chats...', pin: 'Pin', unpin: 'Unpin', rename: 'Rename', delete: 'Delete', renamePrompt: 'New chat name', deleteConfirm: 'Delete this chat?', deleted: 'Chat deleted', renamed: 'Chat renamed', pinned: 'Chat pinned', unpinned: 'Chat unpinned'
+    home: 'Home', dashboard: 'Dashboard', settings: 'Settings', plan: 'Plan', guest: 'Guest', login: 'Login', upgrade: 'Upgrade', pricing: 'Pricing', tools: 'Tools', newChat: 'New chat', recentChats: 'Chats', noChats: 'No saved chats yet.', noSearch: 'No matching chats.', usage: 'Usage', flash: 'QLO 1.2', pro: 'QLO 1.3', models: 'Models', saved: 'Saved', search: 'Search chats...', pin: 'Pin', unpin: 'Unpin', rename: 'Rename', delete: 'Delete', renamePrompt: 'New chat name', deleteConfirm: 'Delete this chat?', deleted: 'Chat deleted', renamed: 'Chat renamed', pinned: 'Chat pinned', unpinned: 'Chat unpinned'
   }
 } as const;
 
@@ -137,7 +137,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <section className="mx-auto max-w-4xl pb-10">
+    <section className="qlo-dashboard-screen mx-auto w-full max-w-4xl overflow-x-hidden pb-10">
       {toast && <div className="fixed bottom-5 left-1/2 z-[9999] -translate-x-1/2 rounded-full border border-white/10 bg-black/80 px-4 py-2 text-sm font-bold text-white shadow-2xl backdrop-blur-xl">{toast}</div>}
 
       <div className="mb-5 rounded-[2rem] border border-white/10 bg-white/5 p-4 md:p-5">
@@ -166,8 +166,17 @@ export default function Dashboard() {
 
         <div className="mt-5 flex flex-wrap justify-center gap-2 md:justify-end">
           <button onClick={startNewChat} className="btn btn-primary"><Plus size={18} /> {c.newChat}</button>
+          <Link to="/tools" className="btn btn-soft"><Wand2 size={18} /> {c.tools}</Link>
           {isGuest ? <Link to="/login" className="btn"><Lock size={18} /> {c.login}</Link> : <Link to="/pricing" className="btn"><CreditCard size={18} /> {c.upgrade}</Link>}
         </div>
+
+        <nav className="qlo-dashboard-nav mt-4" aria-label="Dashboard navigation">
+          <Link to="/"><Home size={16} /> {c.home}</Link>
+          <Link to="/dashboard" aria-current="page"><LayoutDashboard size={16} /> {c.dashboard}</Link>
+          <Link to="/tools"><Wand2 size={16} /> {c.tools}</Link>
+          <Link to="/pricing"><CreditCard size={16} /> {c.pricing}</Link>
+          <Link to="/settings"><Settings size={16} /> {c.settings}</Link>
+        </nav>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_230px]">
