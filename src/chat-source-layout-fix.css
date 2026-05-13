@@ -1,4 +1,4 @@
-/* Qalvero chat emergency layout guard. Because apparently source cards decided to become modern art. */
+/* Scoped chat layout guard. Keep it narrow or CSS turns into abstract crime. */
 .qlo-chat-main,
 .chat-shell,
 .chat-area,
@@ -23,35 +23,40 @@
   word-break: break-word !important;
 }
 
-/* Source/citation cards */
-[class*="source"],
-[class*="citation"],
-[class*="reference"],
-[class*="compact-source"] {
+/* Only affect source cards inside actual message bubbles, never settings/cards globally. */
+.qlo-ai-message [class*="source"],
+.qlo-ai-message [class*="citation"],
+.qlo-ai-message [class*="reference"],
+.message-bubble [class*="source"],
+.message-bubble [class*="citation"],
+.message-bubble [class*="reference"] {
   max-width: 100% !important;
   min-width: 0 !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
 }
 
-[class*="source"] img,
-[class*="citation"] img,
-[class*="reference"] img,
-[class*="compact-source"] img {
+.qlo-ai-message [class*="source"] img,
+.qlo-ai-message [class*="citation"] img,
+.qlo-ai-message [class*="reference"] img,
+.message-bubble [class*="source"] img,
+.message-bubble [class*="citation"] img,
+.message-bubble [class*="reference"] img {
   max-width: 100% !important;
   height: auto !important;
   object-fit: cover !important;
 }
 
-[class*="source"] *,
-[class*="citation"] *,
-[class*="reference"] *,
-[class*="compact-source"] * {
+.qlo-ai-message [class*="source"] *,
+.qlo-ai-message [class*="citation"] *,
+.qlo-ai-message [class*="reference"] *,
+.message-bubble [class*="source"] *,
+.message-bubble [class*="citation"] *,
+.message-bubble [class*="reference"] * {
   min-width: 0 !important;
   overflow-wrap: anywhere !important;
 }
 
-/* Keep assistant action buttons under the message, not floating over the whole page. */
 .qlo-message-actions,
 .qlo-extra-message-actions {
   position: static !important;
@@ -71,14 +76,12 @@
   flex: 0 0 auto !important;
 }
 
-/* If old/native action rows float globally, keep them sane. */
 .qlo-ai-message + div,
 .message-bubble + div {
   max-width: min(92vw, 760px) !important;
   overflow: visible !important;
 }
 
-/* Mobile hardening */
 @media (max-width: 640px) {
   .qlo-ai-message,
   .qlo-user-message,
@@ -86,10 +89,12 @@
     max-width: calc(100vw - 34px) !important;
   }
 
-  [class*="source"],
-  [class*="citation"],
-  [class*="reference"],
-  [class*="compact-source"] {
+  .qlo-ai-message [class*="source"],
+  .qlo-ai-message [class*="citation"],
+  .qlo-ai-message [class*="reference"],
+  .message-bubble [class*="source"],
+  .message-bubble [class*="citation"],
+  .message-bubble [class*="reference"] {
     width: 100% !important;
     border-radius: 1rem !important;
   }
