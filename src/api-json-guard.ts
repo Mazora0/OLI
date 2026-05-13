@@ -9,26 +9,7 @@ function requestUrl(input: RequestInfo | URL) {
 }
 
 function isQalveroAiRequest(input: RequestInfo | URL) {
-  const value = requestUrl(input);
-  return value.includes('/api/qalvero-ai') && !value.includes('/api/qalvero-ai-lite');
-}
-
-function fallbackUrl(input: RequestInfo | URL) {
-  const value = requestUrl(input);
-  return value.replace('/api/qalvero-ai', '/api/qalvero-ai-lite');
-}
-
-async function tryLiteFallback(input: RequestInfo | URL, init?: RequestInit) {
-  try {
-    const lite = await originalFetch(fallbackUrl(input), init);
-    const clone = lite.clone();
-    const raw = await clone.text().catch(() => '');
-    if (!raw) return null;
-    JSON.parse(raw);
-    return lite;
-  } catch {
-    return null;
-  }
+  return requestUrl(input).includes('/api/qalvero-ai');
 }
 
 function safeAiErrorMessage(raw: string, status: number) {
@@ -38,6 +19,9 @@ function safeAiErrorMessage(raw: string, status: number) {
   }
   if (lower.includes('rate') || status === 429) {
     return 'الموديل وصل لحد الاستخدام مؤقتًا. جرّب بعد شوية أو بدّل الموديل.';
+  }
+  if (status >= 500 || lower.includes('a server error')) {
+    return 'حصل خطأ في سيرفر الموديل. افتح Vercel Function Logs لمسار /api/qalvero-ai وشوف الخطأ الحقيقي.';
   }
   return 'الموديل مش قادر يرد حاليًا. جرّب تبديل الموديل أو راجع Vercel Function Logs.';
 }
@@ -55,9 +39,6 @@ window.fetch = async (input, init) => {
     JSON.parse(raw);
     return response;
   } catch {
-    const lite = await tryLiteFallback(input, init);
-    if (lite) return lite;
-
     const message = safeAiErrorMessage(raw, response.status);
     const body = JSON.stringify({
       ok: false,
