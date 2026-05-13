@@ -11,7 +11,7 @@ import {
   readMcpResource,
   requireMcpAuth,
   type JsonRpcRequest
-} from '../../../api/_mcp';
+} from '../_mcp';
 
 function setCors(res: any) {
   res.setHeader('Access-Control-Allow-Origin', process.env.QLO_MCP_ALLOWED_ORIGIN || '*');

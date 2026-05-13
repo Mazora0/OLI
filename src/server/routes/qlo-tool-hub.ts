@@ -1,4 +1,4 @@
-import { callQloMcpTool, qloMcpTools, qloMcpResources, qloMcpPrompts, type McpTool } from '../../../api/_mcp';
+import { callQloMcpTool, qloMcpTools, qloMcpResources, qloMcpPrompts, type McpTool } from '../_mcp';
 
 function setHeaders(res: any) {
   res.setHeader('Cache-Control', 'no-store');
