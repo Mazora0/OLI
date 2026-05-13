@@ -1662,7 +1662,7 @@ ${reply}`.slice(0, 9000), sources);
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2">
+          <div className="qlo-composer-row flex items-end gap-2">
             <textarea ref={textareaRef} rows={1} dir="auto" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={selectedIsAgent ? (lang === 'ar' ? 'اطلب من Agent يبني مشروع أو ملف JSX...' : 'Ask Agent to build a project or JSX file...') : t.placeholder} className="qlo-input" />
             <input id="qv-file-input" type="file" multiple accept={ACCEPTED_FILE_TYPES} className="hidden" onChange={onFileChange} />
             <button type="button" onClick={startVoiceInput} className={`qlo-icon-btn qlo-voice-btn qlo-voice-${voiceState}`} aria-pressed={voiceState === 'listening'} aria-label={voiceState === 'listening' ? copy.voiceListening : copy.voiceIdle} title={voiceState === 'listening' ? copy.voiceListening : copy.voiceIdle}>{voiceState === 'listening' ? <MicOff size={20} /> : <Mic size={20} />}</button>

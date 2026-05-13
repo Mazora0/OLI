@@ -1,3 +1,6 @@
 node_modules/
 dist/
 tsconfig.tsbuildinfo
+src/server/_mcp.ts
+src/server/_observability.ts
+src/server/_vertex.ts

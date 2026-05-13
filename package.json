@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "pretypecheck": "node scripts/prepare-vercel-api.mjs",
     "prebuild": "node scripts/prepare-vercel-api.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
