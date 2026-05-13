@@ -27,10 +27,44 @@ function getAttachmentDock(composer: HTMLElement) {
   if (!dock) {
     dock = document.createElement('div');
     dock.className = 'qlo-attachment-dock';
-    const textareaParent = composer.querySelector('textarea, .qlo-input')?.parentElement;
-    composer.insertBefore(dock, textareaParent || composer.firstChild);
+    const textarea = composer.querySelector('textarea, .qlo-input');
+    const textareaParent = textarea?.parentElement;
+    composer.insertBefore(dock, textareaParent || textarea || composer.firstChild);
   }
   return dock;
+}
+
+function clickHiddenFileClear(composer: HTMLElement) {
+  const fileInput = composer.querySelector<HTMLInputElement>('input[type="file"]') || document.querySelector<HTMLInputElement>('input[type="file"]');
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
+function removeAttachment(item: HTMLElement, composer: HTMLElement) {
+  item.remove();
+  clickHiddenFileClear(composer);
+  composer.classList.remove('qlo-composer-has-attachment');
+  const dock = composer.querySelector<HTMLElement>('.qlo-attachment-dock');
+  if (dock) dock.hidden = true;
+  window.dispatchEvent(new CustomEvent('qlo:attachment-cleared'));
+}
+
+function ensureRemoveButton(item: HTMLElement, composer: HTMLElement) {
+  if (item.querySelector('.qlo-attachment-remove')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'qlo-attachment-remove';
+  button.setAttribute('aria-label', document.documentElement.dir === 'rtl' ? 'إلغاء الملف' : 'Remove file');
+  button.title = button.getAttribute('aria-label') || 'Remove file';
+  button.innerHTML = '×';
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    removeAttachment(item, composer);
+  });
+  item.appendChild(button);
 }
 
 function moveAttachmentsIntoComposer() {
@@ -43,6 +77,8 @@ function moveAttachmentsIntoComposer() {
 
   let count = 0;
   for (const item of attachments) {
+    item.classList.add('qlo-inline-attachment');
+    ensureRemoveButton(item, composer);
     if (!composer.contains(item)) dock.appendChild(item);
     count += 1;
   }
