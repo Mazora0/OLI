@@ -1,0 +1,148 @@
+.qlo-model-switch-toast {
+  animation: qloToastIn .22s cubic-bezier(.2,.8,.2,1) both !important;
+  will-change: opacity, transform !important;
+}
+
+.qlo-model-switch-toast.qlo-toast-leaving {
+  animation: qloToastOut .28s ease forwards !important;
+  pointer-events: none !important;
+}
+
+@keyframes qloToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(.96);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes qloToastOut {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(.96);
+    filter: blur(5px);
+  }
+}
+
+.qlo-thinking-enhanced {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.qlo-live-thinking-timer {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .55rem !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 0 .75rem !important;
+  padding: .45rem .78rem !important;
+  border-radius: 999px !important;
+  border: 1px solid color-mix(in srgb, var(--accent-1) 22%, rgba(255,255,255,.10)) !important;
+  background: color-mix(in srgb, var(--accent-1) 10%, rgba(255,255,255,.055)) !important;
+  color: rgba(255,255,255,.88) !important;
+  font-size: .84rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  backdrop-filter: blur(14px) !important;
+  box-shadow: 0 12px 36px rgba(0,0,0,.18) !important;
+}
+
+.qlo-thinking-pulse {
+  width: .55rem !important;
+  height: .55rem !important;
+  border-radius: 999px !important;
+  background: var(--accent-1) !important;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-1) 40%, transparent) !important;
+  animation: qloThinkingPulse 1.05s ease-in-out infinite !important;
+}
+
+.qlo-thinking-label {
+  color: rgba(255,255,255,.92) !important;
+}
+
+.qlo-thinking-time {
+  color: rgba(255,255,255,.58) !important;
+  font-variant-numeric: tabular-nums !important;
+  direction: ltr !important;
+}
+
+.qlo-thinking-finished-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 0 .65rem !important;
+  padding: .38rem .7rem !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.075) !important;
+  background: rgba(255,255,255,.045) !important;
+  color: rgba(255,255,255,.54) !important;
+  font-size: .78rem !important;
+  font-weight: 650 !important;
+  line-height: 1.15 !important;
+  animation: qloThinkingDoneIn .22s ease both !important;
+}
+
+@keyframes qloThinkingPulse {
+  0%, 100% {
+    transform: scale(.92);
+    opacity: .62;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-1) 34%, transparent);
+  }
+  48% {
+    transform: scale(1.25);
+    opacity: 1;
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+@keyframes qloThinkingDoneIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+html:not(.dark) .qlo-live-thinking-timer,
+html[data-theme='light'] .qlo-live-thinking-timer {
+  background: color-mix(in srgb, var(--accent-1) 8%, #fff) !important;
+  color: #111827 !important;
+  border-color: color-mix(in srgb, var(--accent-1) 20%, rgba(17,24,39,.10)) !important;
+}
+
+html:not(.dark) .qlo-thinking-label,
+html[data-theme='light'] .qlo-thinking-label {
+  color: rgba(17,24,39,.86) !important;
+}
+
+html:not(.dark) .qlo-thinking-time,
+html[data-theme='light'] .qlo-thinking-time,
+html:not(.dark) .qlo-thinking-finished-badge,
+html[data-theme='light'] .qlo-thinking-finished-badge {
+  color: rgba(17,24,39,.52) !important;
+}
+
+html:not(.dark) .qlo-thinking-finished-badge,
+html[data-theme='light'] .qlo-thinking-finished-badge {
+  background: rgba(17,24,39,.045) !important;
+  border-color: rgba(17,24,39,.075) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qlo-model-switch-toast,
+  .qlo-toast-leaving,
+  .qlo-thinking-pulse,
+  .qlo-thinking-finished-badge {
+    animation: none !important;
+  }
+}
